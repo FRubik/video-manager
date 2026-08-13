@@ -35,6 +35,18 @@ uv run video-manager        # comando declarado em [project.scripts]
 uv run python -m video_manager
 ```
 
+Atenção: esta pasta **não tem `.venv`** de propósito — o ambiente da ferramenta
+instalada já contém tudo, e manter os dois duplicava ~900 MB (PySide6 é pesado,
+e o uv não compartilha esses arquivos entre os dois ambientes). Qualquer
+`uv run` aqui recria o `.venv` e traz a duplicação de volta.
+
+Para rodar um script avulso contra as dependências do projeto sem recriar nada,
+use o Python da própria ferramenta:
+
+```bash
+~/.local/share/uv/tools/video-manager/bin/python meu_teste.py
+```
+
 ## Como funciona
 
 ### 1. Tela inicial
