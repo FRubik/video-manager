@@ -19,11 +19,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from . import library
-from .library import DELETE, KEEP, ReviewState, VideoEntry
+from . import library, shortcuts
+from .library import DELETE, KEEP, MAYBE, ReviewState, VideoEntry
 
 COLOR_KEEP = "#2e7d32"
 COLOR_DELETE = "#c62828"
+COLOR_MAYBE = "#ef6c00"
 COLOR_PENDING = "#757575"
 
 
@@ -97,14 +98,17 @@ class ReviewView(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.entries: list[VideoEntry] = []
+        self.videos_dir: Path = Path()
         self.trash_dir: Path = Path()
+        self.maybe_dir: Path = Path()
         self.state: ReviewState | None = None
         self.index = 0
         # a view precisa poder receber foco para que os atalhos (contexto
         # WidgetWithChildren) cheguem até ela
         self.setFocusPolicy(Qt.StrongFocus)
+        self._shortcuts: list[QShortcut] = []
         self._build_ui()
-        self._install_shortcuts()
+        self.apply_key_bindings(shortcuts.DEFAULTS)
 
     # ------------------------------------------------------------------ UI
     def _build_ui(self) -> None:
@@ -143,19 +147,22 @@ class ReviewView(QWidget):
         root.addWidget(self.info_label)
 
         buttons = QHBoxLayout()
-        self.prev_button = QPushButton("← Anterior")
-        self.next_button = QPushButton("Próximo →")
-        self.keep_button = QPushButton("Manter (K)")
-        self.delete_button = QPushButton("Apagar (D)")
-        self.open_button = QPushButton("Abrir vídeo (O)")
+        self.prev_button = QPushButton("Anterior")
+        self.next_button = QPushButton("Próximo")
+        self.keep_button = QPushButton("Manter")
+        self.maybe_button = QPushButton("Talvez")
+        self.delete_button = QPushButton("Apagar")
+        self.open_button = QPushButton("Abrir vídeo")
         self.finish_button = QPushButton("Aplicar e finalizar")
 
         self.keep_button.setStyleSheet(f"font-weight: 600; color: {COLOR_KEEP};")
+        self.maybe_button.setStyleSheet(f"font-weight: 600; color: {COLOR_MAYBE};")
         self.delete_button.setStyleSheet(f"font-weight: 600; color: {COLOR_DELETE};")
 
         self.prev_button.clicked.connect(self.go_previous)
         self.next_button.clicked.connect(self.go_next)
         self.keep_button.clicked.connect(lambda: self.decide(KEEP))
+        self.maybe_button.clicked.connect(lambda: self.decide(MAYBE))
         self.delete_button.clicked.connect(lambda: self.decide(DELETE))
         self.open_button.clicked.connect(self.open_current_video)
         self.finish_button.clicked.connect(self.finish)
@@ -164,6 +171,7 @@ class ReviewView(QWidget):
         buttons.addWidget(self.next_button)
         buttons.addSpacing(20)
         buttons.addWidget(self.keep_button)
+        buttons.addWidget(self.maybe_button)
         buttons.addWidget(self.delete_button)
         buttons.addSpacing(20)
         buttons.addWidget(self.open_button)
@@ -171,34 +179,71 @@ class ReviewView(QWidget):
         buttons.addWidget(self.finish_button)
         root.addLayout(buttons)
 
-        hint = QLabel(
-            "K/→ manter · D apagar · ←/→ navegar · O abrir no player · "
-            "Z ou clique = zoom 1:1 · Enter aplica"
-        )
-        hint.setStyleSheet("color: #888; font-size: 11px;")
-        root.addWidget(hint)
+        self.hint = QLabel()
+        self.hint.setWordWrap(True)
+        self.hint.setStyleSheet("color: #888; font-size: 11px;")
+        root.addWidget(self.hint)
 
-    def _install_shortcuts(self) -> None:
-        def add(seq: str, slot):
-            shortcut = QShortcut(QKeySequence(seq), self)
+    def apply_key_bindings(self, key_bindings: dict) -> None:
+        """Reinstala os atalhos e reescreve rótulos e dica com as teclas atuais."""
+        mapping = shortcuts.normalize(key_bindings)
+
+        for shortcut in self._shortcuts:
+            shortcut.setEnabled(False)
+            shortcut.deleteLater()
+        self._shortcuts.clear()
+
+        slots = {
+            "prev": self.go_previous,
+            "next": self.go_next,
+            "keep": lambda: self.decide(KEEP),
+            "maybe": lambda: self.decide(MAYBE),
+            "delete": lambda: self.decide(DELETE),
+            "open": self.open_current_video,
+            "zoom": self.viewer.toggle_zoom,
+        }
+
+        def add(sequence: str, slot) -> None:
+            if not sequence:
+                return
+            shortcut = QShortcut(QKeySequence(sequence), self)
             shortcut.setContext(Qt.WidgetWithChildrenShortcut)
             shortcut.activated.connect(slot)
+            self._shortcuts.append(shortcut)
 
-        add("K", lambda: self.decide(KEEP))
-        add("D", lambda: self.decide(DELETE))
-        add("Del", lambda: self.decide(DELETE))
-        add("Right", self.go_next)
-        add("Left", self.go_previous)
-        add("Space", self.go_next)
-        add("O", self.open_current_video)
-        add("Z", self.viewer.toggle_zoom)
-        add("Return", self.finish)
-        add("Enter", self.finish)
+        escolhidas = {shortcuts.canonical(v) for v in mapping.values()}
+        for action in shortcuts.ACTIONS:
+            slot = slots[action.key]
+            add(mapping[action.key], slot)
+            for alternativa in action.extra:
+                # uma alternativa fixa não pode roubar a tecla escolhida para outra ação
+                if shortcuts.canonical(alternativa) not in escolhidas:
+                    add(alternativa, slot)
+        for sequence in shortcuts.APPLY_KEYS:
+            add(sequence, self.finish)
+
+        self.prev_button.setText(f"← Anterior ({mapping['prev']})")
+        self.next_button.setText(f"Próximo ({mapping['next']}) →")
+        self.keep_button.setText(f"Manter ({mapping['keep']})")
+        self.maybe_button.setText(f"Talvez ({mapping['maybe']})")
+        self.delete_button.setText(f"Apagar ({mapping['delete']})")
+        self.open_button.setText(f"Abrir vídeo ({mapping['open']})")
+        self.hint.setText(shortcuts.describe(mapping) + " · clique na imagem = zoom")
 
     # -------------------------------------------------------------- sessão
-    def load_session(self, entries: list[VideoEntry], trash_dir: Path, state: ReviewState) -> None:
+    def load_session(
+        self,
+        entries: list[VideoEntry],
+        state: ReviewState,
+        *,
+        videos_dir: Path,
+        trash_dir: Path,
+        maybe_dir: Path,
+    ) -> None:
         self.entries = entries
+        self.videos_dir = videos_dir
         self.trash_dir = trash_dir
+        self.maybe_dir = maybe_dir
         self.state = state
         self.index = 0
         for entry in self.entries:
@@ -257,9 +302,11 @@ class ReviewView(QWidget):
         pending = sum(1 for e in self.entries if e.decision is None)
         to_delete = sum(1 for e in self.entries if e.decision == DELETE)
         to_keep = sum(1 for e in self.entries if e.decision == KEEP)
+        to_maybe = sum(1 for e in self.entries if e.decision == MAYBE)
+        origem = "  ·   veio do “talvez”" if entry.from_maybe else ""
         self.info_label.setText(
-            f"{entry.size_mb:,.1f} MB   ·   manter: {to_keep}   apagar: {to_delete}   "
-            f"pendentes: {pending}".replace(",", ".")
+            f"{entry.size_mb:,.1f} MB   ·   manter: {to_keep}   talvez: {to_maybe}   "
+            f"apagar: {to_delete}   pendentes: {pending}{origem}".replace(",", ".")
         )
 
         self.list.blockSignals(True)
@@ -267,24 +314,25 @@ class ReviewView(QWidget):
         self.list.blockSignals(False)
 
     def _update_status_label(self, entry: VideoEntry) -> None:
-        if entry.decision == DELETE:
-            self.status_label.setText("● APAGAR")
-            self.status_label.setStyleSheet(f"font-weight: 600; color: {COLOR_DELETE};")
-        elif entry.decision == KEEP:
-            self.status_label.setText("● MANTER")
-            self.status_label.setStyleSheet(f"font-weight: 600; color: {COLOR_KEEP};")
-        else:
-            self.status_label.setText("○ pendente")
-            self.status_label.setStyleSheet(f"font-weight: 600; color: {COLOR_PENDING};")
+        texto = {DELETE: "● APAGAR", KEEP: "● MANTER", MAYBE: "● TALVEZ"}.get(
+            entry.decision, "○ pendente"
+        )
+        cor = {DELETE: COLOR_DELETE, KEEP: COLOR_KEEP, MAYBE: COLOR_MAYBE}.get(
+            entry.decision, COLOR_PENDING
+        )
+        self.status_label.setText(texto)
+        self.status_label.setStyleSheet(f"font-weight: 600; color: {cor};")
 
     def _update_list_item(self, position: int) -> None:
         item = self.list.item(position)
         if item is None:
             return
         entry = self.entries[position]
-        prefix = {DELETE: "✖ ", KEEP: "✔ "}.get(entry.decision, "  ")
+        prefix = {DELETE: "✖ ", KEEP: "✔ ", MAYBE: "? "}.get(entry.decision, "  ")
         item.setText(prefix + entry.name)
-        color = {DELETE: COLOR_DELETE, KEEP: COLOR_KEEP}.get(entry.decision, COLOR_PENDING)
+        color = {DELETE: COLOR_DELETE, KEEP: COLOR_KEEP, MAYBE: COLOR_MAYBE}.get(
+            entry.decision, COLOR_PENDING
+        )
         item.setForeground(QBrush(QColor(color)))
 
     # ------------------------------------------------------------- decisões
@@ -331,11 +379,12 @@ class ReviewView(QWidget):
 
     def _offer_finish(self) -> None:
         to_delete = sum(1 for e in self.entries if e.decision == DELETE)
+        to_maybe = sum(1 for e in self.entries if e.decision == MAYBE)
         answer = QMessageBox.question(
             self,
             "Fim da sessão",
             f"Você revisou todos os {len(self.entries)} vídeos desta sessão.\n"
-            f"{to_delete} marcado(s) para apagar.\n\nAplicar agora?",
+            f"{to_delete} para apagar · {to_maybe} para rever depois.\n\nAplicar agora?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.Yes,
         )
@@ -346,47 +395,77 @@ class ReviewView(QWidget):
     def has_pending_changes(self) -> bool:
         return any(e.decision is not None for e in self.entries)
 
-    def finish(self) -> None:
-        to_delete = [e for e in self.entries if e.decision == DELETE]
-        to_keep = [e for e in self.entries if e.decision == KEEP]
+    def _planned_moves(self) -> list[tuple[VideoEntry, Path | None, str]]:
+        """Para cada decidido: (vídeo, destino ou None se fica onde está, motivo)."""
+        plano = []
+        for entry in self.entries:
+            if entry.decision == DELETE:
+                plano.append((entry, self.trash_dir, DELETE))
+            elif entry.decision == MAYBE:
+                # já está no talvez: nada a mover, só o registro muda
+                plano.append((entry, None if entry.from_maybe else self.maybe_dir, MAYBE))
+            elif entry.decision == KEEP:
+                # manter um vídeo do talvez significa trazê-lo de volta
+                plano.append((entry, self.videos_dir if entry.from_maybe else None, KEEP))
+        return plano
 
-        if to_delete:
+    def finish(self) -> None:
+        plano = self._planned_moves()
+        if not plano:
+            self.session_finished.emit({"movidos": 0, "mantidos": 0, "talvez": 0, "erros": []})
+            return
+
+        linhas = []
+        for destino, rotulo in (
+            (self.trash_dir, "apagar"),
+            (self.maybe_dir, "rever depois"),
+            (self.videos_dir, "voltar para a pasta de vídeos"),
+        ):
+            quantos = sum(1 for _, dest, _ in plano if dest == destino)
+            if quantos:
+                linhas.append(f"• {quantos} vídeo(s) — {rotulo}:\n    {destino}")
+
+        if linhas:
             answer = QMessageBox.question(
                 self,
-                "Confirmar descarte",
-                f"Mover {len(to_delete)} vídeo(s) para:\n{self.trash_dir}\n\n"
-                "As thumbnails permanecem onde estão.",
+                "Confirmar movimentações",
+                "\n".join(linhas) + "\n\nAs thumbnails permanecem onde estão.",
                 QMessageBox.Yes | QMessageBox.Cancel,
                 QMessageBox.Yes,
             )
             if answer != QMessageBox.Yes:
                 return
 
-        moved, errors = 0, []
-        for entry in to_delete:
+        contagem = {DELETE: 0, KEEP: 0, MAYBE: 0}
+        errors: list[str] = []
+        for entry, destino, motivo in plano:
             try:
-                library.move_to_trash(entry.video, self.trash_dir)
-                moved += 1
+                if destino is not None:
+                    # devolução: o log fica no "talvez", de onde o vídeo saiu
+                    log_dir = self.maybe_dir if motivo == KEEP else None
+                    library.move_video(entry.video, destino, motivo, log_dir)
+                contagem[motivo] += 1
                 if self.state is not None:
-                    self.state.record(entry.name, DELETE)
+                    self.state.record(entry.name, motivo)
             except OSError as exc:
+                # sem registro: a decisão volta a aparecer na próxima sessão
                 errors.append(f"{entry.name}: {exc}")
 
         if self.state is not None:
-            for entry in to_keep:
-                self.state.record(entry.name, KEEP)
             self.state.save()
 
         summary = {
-            "movidos": moved,
-            "mantidos": len(to_keep),
+            "movidos": contagem[DELETE],
+            "mantidos": contagem[KEEP],
+            "talvez": contagem[MAYBE],
             "erros": errors,
             "quarentena": str(self.trash_dir),
         }
 
         message = (
-            f"<b>{moved}</b> vídeo(s) movido(s) para a quarentena<br>"
-            f"<b>{len(to_keep)}</b> mantido(s) e registrado(s) como revisados"
+            f"<b>{contagem[DELETE]}</b> vídeo(s) movido(s) para a quarentena<br>"
+            f"<b>{contagem[MAYBE]}</b> guardado(s) para rever depois<br>"
+            f"<b>{contagem[KEEP]}</b> mantido(s) e registrado(s) como revisados"
         )
         if errors:
             message += "<br><br><b>Falhas:</b><br>" + "<br>".join(errors[:10])

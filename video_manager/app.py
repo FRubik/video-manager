@@ -36,7 +36,10 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.review_view)
         self.setCentralWidget(self.stack)
 
+        self.review_view.apply_key_bindings(self.config.key_bindings)
+
         self.setup_view.start_requested.connect(self.on_start)
+        self.setup_view.key_bindings_changed.connect(self.review_view.apply_key_bindings)
         self.review_view.session_finished.connect(self.on_session_finished)
 
         self._worker: ThumbWorker | None = None
@@ -66,6 +69,16 @@ class MainWindow(QMainWindow):
         if not config.trash_dir:
             config.trash_dir = str(library.default_trash_dir(videos_dir))
             self.setup_view.trash_picker.setText(config.trash_dir)
+        if not config.maybe_dir:
+            config.maybe_dir = str(library.default_maybe_dir(videos_dir))
+            self.setup_view.maybe_picker.setText(config.maybe_dir)
+        if Path(config.maybe_dir).expanduser() == Path(config.trash_dir).expanduser():
+            QMessageBox.warning(
+                self,
+                "Pastas iguais",
+                "As pastas de descartes e de “talvez” precisam ser diferentes.",
+            )
+            return
 
         config.save()
         self._pending_config = config
@@ -77,7 +90,9 @@ class MainWindow(QMainWindow):
 
     # ----------------------------------------------------------- thumbnails
     def _start_generation(self, config: Config, videos_dir: Path, thumbs_dir: Path) -> None:
-        entries = library.scan(videos_dir, thumbs_dir)
+        # o "talvez" entra aqui também: sem thumbnail ele não apareceria na revisão
+        maybe_dir = Path(config.maybe_dir).expanduser() if config.include_maybe else None
+        entries = library.scan(videos_dir, thumbs_dir, maybe_dir)
         pending = [e.video for e in entries if not (config.only_missing and e.thumb is not None)]
 
         if not pending:
@@ -150,8 +165,11 @@ class MainWindow(QMainWindow):
         videos_dir = Path(config.videos_dir).expanduser()
         thumbs_dir = Path(config.thumbs_dir).expanduser()
         trash_dir = Path(config.trash_dir).expanduser()
+        maybe_dir = Path(config.maybe_dir).expanduser()
 
-        entries: list[VideoEntry] = library.scan(videos_dir, thumbs_dir)
+        entries: list[VideoEntry] = library.scan(
+            videos_dir, thumbs_dir, maybe_dir if config.include_maybe else None
+        )
         state = ReviewState(thumbs_dir)
         session = library.build_session(
             entries,
@@ -170,7 +188,13 @@ class MainWindow(QMainWindow):
             )
             return
 
-        self.review_view.load_session(session, trash_dir, state)
+        self.review_view.load_session(
+            session,
+            state,
+            videos_dir=videos_dir,
+            trash_dir=trash_dir,
+            maybe_dir=maybe_dir,
+        )
         self.stack.setCurrentWidget(self.review_view)
         self.review_view.grab_keyboard_focus()
 
