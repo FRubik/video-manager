@@ -26,6 +26,7 @@ ACTIONS: tuple[Action, ...] = (
     Action("prev", "Vídeo anterior", "A", ("Left",)),
     Action("next", "Próximo vídeo", "D", ("Right", "Space")),
     Action("keep", "Manter", "E"),
+    Action("maybe", "Talvez", "W"),
     Action("delete", "Excluir", "Q", ("Del",)),
     Action("open", "Abrir no player", "G"),
     Action("zoom", "Zoom 1:1", "Z"),

@@ -104,14 +104,21 @@ class SetupView(QWidget):
         self.videos_picker = FolderPicker("pasta com os vídeos")
         self.thumbs_picker = FolderPicker("pasta onde ficam/serão salvas as thumbs")
         self.trash_picker = FolderPicker("quarentena (padrão: <vídeos>/_para_apagar)")
+        self.maybe_picker = FolderPicker("rever depois (padrão: <vídeos>/_talvez)")
         form.addRow("Vídeos:", self.videos_picker)
         form.addRow("Thumbnails:", self.thumbs_picker)
         self.trash_default_button = self.trash_picker.add_button(
             "Padrão",
             "Apontar a quarentena para <pasta de vídeos>/_para_apagar",
-            self._use_default_trash,
+            lambda: self._use_default(self.trash_picker, library.default_trash_dir),
         )
         form.addRow("Descartes:", self.trash_picker)
+        self.maybe_default_button = self.maybe_picker.add_button(
+            "Padrão",
+            "Apontar o “talvez” para <pasta de vídeos>/_talvez",
+            lambda: self._use_default(self.maybe_picker, library.default_maybe_dir),
+        )
+        form.addRow("Talvez:", self.maybe_picker)
         root.addWidget(folders)
 
         self.videos_picker.changed.connect(self._on_videos_changed)
@@ -184,14 +191,22 @@ class SetupView(QWidget):
         random_row.addStretch()
 
         self.skip_reviewed = QCheckBox("Pular vídeos que já revisei em sessões anteriores")
+        self.include_maybe = QCheckBox("Incluir os vídeos marcados como “talvez”")
+        self.include_maybe.setToolTip(
+            "Traz de volta o que ficou na pasta “talvez”. Manter devolve o vídeo "
+            "à pasta de vídeos; apagar manda para a quarentena."
+        )
         session_layout.addWidget(self.mode_all)
         session_layout.addLayout(random_row)
         session_layout.addWidget(self.skip_reviewed)
+        session_layout.addWidget(self.include_maybe)
         root.addWidget(session)
 
         self.mode_random.toggled.connect(self.session_size.setEnabled)
         self.mode_random.toggled.connect(self.refresh_summary)
         self.skip_reviewed.toggled.connect(self.refresh_summary)
+        self.include_maybe.toggled.connect(self.refresh_summary)
+        self.maybe_picker.changed.connect(self.refresh_summary)
 
         # --- resumo + ação ---
         self.summary = QLabel()
@@ -230,6 +245,7 @@ class SetupView(QWidget):
         self.videos_picker.setText(c.videos_dir)
         self.thumbs_picker.setText(c.thumbs_dir)
         self.trash_picker.setText(c.trash_dir)
+        self.maybe_picker.setText(c.maybe_dir)
         self.gen_group.setChecked(c.generate_thumbs)
         self.only_missing.setChecked(c.only_missing)
         self.n_rows.setValue(c.n_rows)
@@ -243,13 +259,23 @@ class SetupView(QWidget):
         self.session_size.setValue(c.session_size)
         self.session_size.setEnabled(c.random_session)
         self.skip_reviewed.setChecked(c.skip_reviewed)
+        self.include_maybe.setChecked(c.include_maybe)
         self._previous_videos_dir = c.videos_dir
+        # config de uma versão anterior não traz as pastas novas
+        if c.videos_dir:
+            for picker, default_for in (
+                (self.trash_picker, library.default_trash_dir),
+                (self.maybe_picker, library.default_maybe_dir),
+            ):
+                if not picker.text():
+                    picker.setText(str(default_for(self.videos_picker.path())))
 
     def current_config(self) -> Config:
         c = self.config
         c.videos_dir = self.videos_picker.text()
         c.thumbs_dir = self.thumbs_picker.text()
         c.trash_dir = self.trash_picker.text()
+        c.maybe_dir = self.maybe_picker.text()
         c.generate_thumbs = self.gen_group.isChecked()
         c.only_missing = self.only_missing.isChecked()
         c.n_rows = self.n_rows.value()
@@ -261,6 +287,7 @@ class SetupView(QWidget):
         c.random_session = self.mode_random.isChecked()
         c.session_size = self.session_size.value()
         c.skip_reviewed = self.skip_reviewed.isChecked()
+        c.include_maybe = self.include_maybe.isChecked()
         return c
 
     def _edit_shortcuts(self) -> None:
@@ -271,40 +298,54 @@ class SetupView(QWidget):
         self.config.save()
         self.key_bindings_changed.emit(self.config.key_bindings)
 
-    def _use_default_trash(self) -> None:
+    def maybe_scan_dir(self) -> Path | None:
+        """Pasta “talvez” a incluir na varredura, ou None se a opção está desligada."""
+        if not self.include_maybe.isChecked() or not self.maybe_picker.text():
+            return None
+        return self.maybe_picker.path()
+
+    def _use_default(self, picker: FolderPicker, default_for) -> None:
         if not self.videos_picker.text():
             return
-        self.trash_picker.setText(str(library.default_trash_dir(self.videos_picker.path())))
+        picker.setText(str(default_for(self.videos_picker.path())))
         self.refresh_summary()
 
-    def _trash_follows_videos(self) -> bool:
-        """A quarentena está vazia ou ainda é a padrão da pasta de vídeos anterior?"""
-        current = self.trash_picker.text()
+    def _follows_videos(self, picker: FolderPicker, default_for) -> bool:
+        """A pasta está vazia ou ainda é a padrão da pasta de vídeos anterior?"""
+        current = picker.text()
         if not current:
             return True
         if not self._previous_videos_dir:
             return False
         previous = Path(self._previous_videos_dir).expanduser()
-        return Path(current).expanduser() == library.default_trash_dir(previous)
+        return Path(current).expanduser() == default_for(previous)
 
     def _on_videos_changed(self) -> None:
-        if self.videos_picker.text() and self._trash_follows_videos():
-            self.trash_picker.setText(str(library.default_trash_dir(self.videos_picker.path())))
+        if self.videos_picker.text():
+            for picker, default_for in (
+                (self.trash_picker, library.default_trash_dir),
+                (self.maybe_picker, library.default_maybe_dir),
+            ):
+                if self._follows_videos(picker, default_for):
+                    picker.setText(str(default_for(self.videos_picker.path())))
         self._previous_videos_dir = self.videos_picker.text()
         self.refresh_summary()
 
     def refresh_summary(self) -> None:
         videos_dir = self.videos_picker.path()
         thumbs_dir = self.thumbs_picker.path()
-        self.trash_default_button.setEnabled(bool(self.videos_picker.text()))
+        has_videos_dir = bool(self.videos_picker.text())
+        self.trash_default_button.setEnabled(has_videos_dir)
+        self.maybe_default_button.setEnabled(has_videos_dir)
 
-        if not self.videos_picker.text() or not videos_dir.is_dir():
+        if not has_videos_dir or not videos_dir.is_dir():
             self.summary.setText("Selecione uma pasta de vídeos válida para começar.")
             self.start_button.setEnabled(False)
             return
 
-        entries = library.scan(videos_dir, thumbs_dir)
+        entries = library.scan(videos_dir, thumbs_dir, self.maybe_scan_dir())
         total = len(entries)
+        from_maybe = sum(1 for e in entries if e.from_maybe)
         with_thumb = sum(1 for e in entries if e.thumb is not None)
         missing = total - with_thumb
 
@@ -327,7 +368,8 @@ class SetupView(QWidget):
 
         lines = [
             f"<b>{total}</b> vídeos · <b>{with_thumb}</b> com thumbnail · <b>{missing}</b> sem thumbnail",
-            f"<b>{reviewed}</b> já revisados em sessões anteriores",
+            f"<b>{reviewed}</b> já revisados em sessões anteriores"
+            + (f" · <b>{from_maybe}</b> vindos do “talvez”" if from_maybe else ""),
             f"Esta sessão vai mostrar <b>{session_count}</b> vídeo(s).",
         ]
         if missing and not will_generate:

@@ -51,8 +51,11 @@ use o Python da própria ferramenta:
 
 ### 1. Tela inicial
 
-- **Pastas**: vídeos, thumbnails e a pasta de descartes (preenchida sozinha como
-  `<pasta de vídeos>/_para_apagar`, mas pode apontar para qualquer lugar).
+- **Pastas**: vídeos, thumbnails, descartes (`<pasta de vídeos>/_para_apagar`) e
+  *talvez* (`<pasta de vídeos>/_talvez`). As duas últimas são preenchidas
+  sozinhas e acompanham a troca da pasta de vídeos enquanto estiverem no valor
+  padrão; o botão **Padrão** ao lado de cada uma refaz o caminho a qualquer
+  momento, e nada impede apontar para outro lugar.
 - **Gerar thumbnails**: desmarcado, o programa vai direto para a revisão usando as
   thumbs existentes. Marcado, gera antes — com a opção *somente vídeos que ainda
   não têm thumbnail*, que é o caso comum quando você adiciona vídeos novos.
@@ -61,7 +64,9 @@ use o Python da própria ferramenta:
   - *Verificação randômica* — sorteia N vídeos e a sessão termina neles, para
     fatiar uma pasta grande ao longo de vários dias;
   - *Pular vídeos que já revisei* — usa o histórico para não repetir o que você
-    já decidiu em sessões anteriores.
+    já decidiu em sessões anteriores;
+  - *Incluir os vídeos marcados como "talvez"* — traz de volta o que ficou
+    pendente de uma segunda olhada (veja abaixo).
 
 O painel de resumo mostra quantos vídeos existem, quantos têm thumbnail, quantos
 já foram revisados e quantos entram nesta sessão.
@@ -77,6 +82,7 @@ As teclas padrão ficam agrupadas à esquerda, para revisar com uma mão só:
 | `A` ou `←` | vídeo anterior (dá para voltar e trocar a decisão) |
 | `D`, `→` ou `Espaço` | próximo vídeo, sem decidir |
 | `E` | marca para manter e avança |
+| `W` | marca como *talvez* — rever depois — e avança |
 | `Q` ou `Del` | marca para apagar e avança |
 | `G` | abre o vídeo no player padrão do sistema |
 | `Z` ou clique | alterna entre ajustar à janela e zoom 1:1 |
@@ -89,21 +95,40 @@ fica salva no `config.json`. As alternativas da tabela (`←`, `→`, `Espaço`,
 Nada é movido enquanto você decide — as marcações só são aplicadas em **Aplicar e
 finalizar** (ou no fim da sessão, que pergunta), sempre com confirmação.
 
-### 3. O que acontece ao aplicar
+### 3. O "talvez"
+
+Para o vídeo que a thumbnail não resolve — precisa assistir um trecho, comparar
+com outro, decidir com a cabeça mais fria. `W` manda para a pasta *talvez* em vez
+de decidir na hora.
+
+O que separa o *talvez* de uma decisão: ele **não entra no histórico como
+revisado**. Com *Incluir os vídeos marcados como "talvez"* ligado, esses vídeos
+voltam a aparecer nas próximas sessões junto com os novos, sem você mexer em
+campo nenhum. Quando finalmente decidir:
+
+- **manter** devolve o vídeo à pasta de vídeos e aí sim registra como revisado;
+- **apagar** manda para a quarentena, como qualquer outro;
+- **talvez** de novo deixa onde está, para a próxima rodada.
+
+### 4. O que acontece ao aplicar
 
 - Vídeos marcados como *apagar* são **movidos** para a pasta de descartes (nunca
   apagados); nomes repetidos ganham sufixo `(2)`, `(3)`… em vez de sobrescrever.
 - A **thumbnail continua** na pasta de thumbs, para você reavaliar o descarte
   pela imagem antes de apagar de vez.
-- Cada movimento é registrado em `_movimentos.jsonl` dentro da pasta de descartes
-  (origem, destino e data), o que permite desfazer manualmente se precisar.
+- Cada movimento é registrado em `_movimentos.jsonl` (origem, destino, data e
+  motivo), dentro da pasta de destino — ou da pasta *talvez*, no caso de uma
+  devolução, para não largar arquivo de log na sua pasta de vídeos.
+- Um movimento que falha (permissão, disco cheio) **não** é registrado no
+  histórico: o vídeo volta a aparecer na próxima sessão, com a decisão a tomar
+  de novo.
 
 ## Arquivos de estado
 
 | Arquivo | Onde | Para quê |
 |---|---|---|
-| `.video_manager_state.json` | pasta de thumbnails | histórico de decisões (alimenta o "pular já revisados") |
-| `_movimentos.jsonl` | pasta de descartes | log dos vídeos movidos |
+| `.video_manager_state.json` | pasta de thumbnails | histórico de decisões (alimenta o "pular já revisados"; o *talvez* fica registrado, mas não conta como revisado) |
+| `_movimentos.jsonl` | pastas de descartes e de *talvez* | log dos vídeos movidos |
 | `config.json` | `~/.config/video_manager/` | últimas pastas, opções usadas e atalhos |
 
 O histórico fica junto das thumbs de propósito: se a pasta mudar de lugar ou de

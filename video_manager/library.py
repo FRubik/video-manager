@@ -23,6 +23,10 @@ TRASH_LOG = "_movimentos.jsonl"
 
 KEEP = "keep"
 DELETE = "delete"
+MAYBE = "maybe"
+
+#: decisões finais — só elas contam como "já revisado"
+FINAL_DECISIONS = (KEEP, DELETE)
 
 
 @dataclass
@@ -31,7 +35,9 @@ class VideoEntry:
 
     video: Path
     thumb: Path | None = None
-    decision: str | None = None  # None | KEEP | DELETE
+    decision: str | None = None  # None | KEEP | DELETE | MAYBE
+    #: veio da pasta "talvez", e volta para a pasta de vídeos se for mantido
+    from_maybe: bool = False
 
     @property
     def name(self) -> str:
@@ -79,9 +85,20 @@ def thumb_output_name(video: Path) -> str:
     return f"{video.name}.jpg"
 
 
-def scan(videos_dir: Path, thumbs_dir: Path) -> list[VideoEntry]:
+def scan(videos_dir: Path, thumbs_dir: Path, maybe_dir: Path | None = None) -> list[VideoEntry]:
+    """Vídeos da pasta principal e, opcionalmente, os que estão no "talvez".
+
+    Como `list_videos` só olha o primeiro nível, o "talvez" padrão (uma
+    subpasta dos vídeos) não é varrido duas vezes.
+    """
     index = index_thumbs(thumbs_dir)
-    return [VideoEntry(video=v, thumb=find_thumb(v, index)) for v in list_videos(videos_dir)]
+    entries = [VideoEntry(video=v, thumb=find_thumb(v, index)) for v in list_videos(videos_dir)]
+    if maybe_dir is not None and maybe_dir.is_dir():
+        entries += [
+            VideoEntry(video=v, thumb=find_thumb(v, index), from_maybe=True)
+            for v in list_videos(maybe_dir)
+        ]
+    return entries
 
 
 class ReviewState:
@@ -102,7 +119,11 @@ class ReviewState:
             pass
 
     def was_reviewed(self, name: str) -> bool:
-        return name in self.reviewed
+        """Só decisão final conta: o "talvez" existe justamente para voltar."""
+        entry = self.reviewed.get(name)
+        if not isinstance(entry, dict):
+            return False
+        return entry.get("decision") in FINAL_DECISIONS
 
     def record(self, name: str, decision: str) -> None:
         self.reviewed[name] = {
@@ -158,23 +179,28 @@ def unique_destination(dest: Path) -> Path:
         n += 1
 
 
-def move_to_trash(video: Path, trash_dir: Path) -> Path:
-    """Move o vídeo para a quarentena e registra o movimento em log."""
-    trash_dir.mkdir(parents=True, exist_ok=True)
-    dest = unique_destination(trash_dir / video.name)
+def move_video(video: Path, dest_dir: Path, motivo: str, log_dir: Path | None = None) -> Path:
+    """Move o vídeo para a pasta indicada e registra o movimento em log.
+
+    `log_dir` existe para a devolução de um vídeo do "talvez": o log pertence
+    à pasta gerenciada pelo app, não à pasta de vídeos do usuário.
+    """
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = unique_destination(dest_dir / video.name)
     shutil.move(str(video), str(dest))
-    _log_move(trash_dir, video, dest)
+    _log_move(log_dir or dest_dir, video, dest, motivo)
     return dest
 
 
-def _log_move(trash_dir: Path, origin: Path, dest: Path) -> None:
+def _log_move(dest_dir: Path, origin: Path, dest: Path, motivo: str) -> None:
     entry = {
         "at": datetime.now().isoformat(timespec="seconds"),
+        "motivo": motivo,
         "origem": str(origin),
         "destino": str(dest),
     }
     try:
-        with (trash_dir / TRASH_LOG).open("a", encoding="utf-8") as fh:
+        with (dest_dir / TRASH_LOG).open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except OSError:
         pass
@@ -182,6 +208,10 @@ def _log_move(trash_dir: Path, origin: Path, dest: Path) -> None:
 
 def default_trash_dir(videos_dir: Path) -> Path:
     return videos_dir / "_para_apagar"
+
+
+def default_maybe_dir(videos_dir: Path) -> Path:
+    return videos_dir / "_talvez"
 
 
 #: variáveis que o OpenCV reescreve e que envenenam qualquer app Qt filho

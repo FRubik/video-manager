@@ -17,6 +17,7 @@ class Config:
     videos_dir: str = ""
     thumbs_dir: str = ""
     trash_dir: str = ""
+    maybe_dir: str = ""
 
     # geração de thumbnails
     generate_thumbs: bool = False
@@ -32,6 +33,7 @@ class Config:
     random_session: bool = False
     session_size: int = 30
     skip_reviewed: bool = True
+    include_maybe: bool = True
 
     # atalhos da tela de revisão: ação -> tecla
     key_bindings: dict = field(default_factory=lambda: dict(shortcuts.DEFAULTS))
