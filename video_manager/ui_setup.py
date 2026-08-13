@@ -43,10 +43,19 @@ class FolderPicker(QWidget):
         button.setToolTip("Escolher pasta")
         button.clicked.connect(self._browse)
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.edit)
-        layout.addWidget(button)
+        self._layout = QHBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.addWidget(self.edit)
+        self._layout.addWidget(button)
+
+    def add_button(self, text: str, tooltip: str, callback) -> QToolButton:
+        """Acrescenta um botão extra à direita do campo."""
+        button = QToolButton()
+        button.setText(text)
+        button.setToolTip(tooltip)
+        button.clicked.connect(callback)
+        self._layout.addWidget(button)
+        return button
 
     def _browse(self) -> None:
         start = self.edit.text().strip() or str(Path.home())
@@ -71,6 +80,8 @@ class SetupView(QWidget):
     def __init__(self, config: Config, parent=None):
         super().__init__(parent)
         self.config = config
+        #: pasta de vídeos anterior, para saber se a quarentena ainda é a padrão dela
+        self._previous_videos_dir = ""
         self._build_ui()
         self._load_config()
         self.refresh_summary()
@@ -93,6 +104,11 @@ class SetupView(QWidget):
         self.trash_picker = FolderPicker("quarentena (padrão: <vídeos>/_para_apagar)")
         form.addRow("Vídeos:", self.videos_picker)
         form.addRow("Thumbnails:", self.thumbs_picker)
+        self.trash_default_button = self.trash_picker.add_button(
+            "Padrão",
+            "Apontar a quarentena para <pasta de vídeos>/_para_apagar",
+            self._use_default_trash,
+        )
         form.addRow("Descartes:", self.trash_picker)
         root.addWidget(folders)
 
@@ -221,6 +237,7 @@ class SetupView(QWidget):
         self.session_size.setValue(c.session_size)
         self.session_size.setEnabled(c.random_session)
         self.skip_reviewed.setChecked(c.skip_reviewed)
+        self._previous_videos_dir = c.videos_dir
 
     def current_config(self) -> Config:
         c = self.config
@@ -240,14 +257,32 @@ class SetupView(QWidget):
         c.skip_reviewed = self.skip_reviewed.isChecked()
         return c
 
+    def _use_default_trash(self) -> None:
+        if not self.videos_picker.text():
+            return
+        self.trash_picker.setText(str(library.default_trash_dir(self.videos_picker.path())))
+        self.refresh_summary()
+
+    def _trash_follows_videos(self) -> bool:
+        """A quarentena está vazia ou ainda é a padrão da pasta de vídeos anterior?"""
+        current = self.trash_picker.text()
+        if not current:
+            return True
+        if not self._previous_videos_dir:
+            return False
+        previous = Path(self._previous_videos_dir).expanduser()
+        return Path(current).expanduser() == library.default_trash_dir(previous)
+
     def _on_videos_changed(self) -> None:
-        if not self.trash_picker.text() and self.videos_picker.text():
+        if self.videos_picker.text() and self._trash_follows_videos():
             self.trash_picker.setText(str(library.default_trash_dir(self.videos_picker.path())))
+        self._previous_videos_dir = self.videos_picker.text()
         self.refresh_summary()
 
     def refresh_summary(self) -> None:
         videos_dir = self.videos_picker.path()
         thumbs_dir = self.thumbs_picker.path()
+        self.trash_default_button.setEnabled(bool(self.videos_picker.text()))
 
         if not self.videos_picker.text() or not videos_dir.is_dir():
             self.summary.setText("Selecione uma pasta de vídeos válida para começar.")
