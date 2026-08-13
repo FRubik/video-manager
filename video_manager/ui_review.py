@@ -4,15 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import (
-    QBrush,
-    QColor,
-    QDesktopServices,
-    QKeySequence,
-    QPixmap,
-    QShortcut,
-)
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QBrush, QColor, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -326,8 +319,15 @@ class ReviewView(QWidget):
 
     def open_current_video(self) -> None:
         entry = self.current
-        if entry is not None and entry.video.exists():
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(entry.video)))
+        if entry is None:
+            return
+        ok, reason = library.open_in_player(entry.video)
+        if not ok:
+            QMessageBox.warning(
+                self,
+                "Não foi possível abrir o vídeo",
+                f"{entry.name}\n\n{reason}\n\nCaminho:\n{entry.video}",
+            )
 
     def _offer_finish(self) -> None:
         to_delete = sum(1 for e in self.entries if e.decision == DELETE)

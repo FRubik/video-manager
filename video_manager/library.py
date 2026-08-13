@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import shutil
+import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -179,3 +182,37 @@ def _log_move(trash_dir: Path, origin: Path, dest: Path) -> None:
 
 def default_trash_dir(videos_dir: Path) -> Path:
     return videos_dir / "_para_apagar"
+
+
+def open_in_player(path: Path) -> tuple[bool, str]:
+    """Abre o vídeo no player padrão do sistema.
+
+    Entrega o caminho do arquivo diretamente ao abridor do sistema em vez de
+    uma URL `file://`: players como o VLC recebem a URL via `%U` do .desktop e
+    nomes com `#`, `%`, `&` ou espaços podem ser reinterpretados no caminho,
+    resultando em "não foi possível abrir o arquivo".
+
+    Retorna (sucesso, motivo da falha).
+    """
+    if not path.exists():
+        return False, "o arquivo não está mais nesse caminho"
+
+    try:
+        if sys.platform.startswith("win"):
+            os.startfile(str(path))  # noqa: S606 - API padrão do Windows
+            return True, ""
+
+        launcher = "open" if sys.platform == "darwin" else "xdg-open"
+        executable = shutil.which(launcher)
+        if executable is None:
+            return False, f"`{launcher}` não foi encontrado no sistema"
+
+        subprocess.Popen(
+            [executable, str(path)],
+            start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return True, ""
+    except OSError as exc:
+        return False, str(exc)
