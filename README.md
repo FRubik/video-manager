@@ -9,14 +9,25 @@ já gerou são reaproveitadas sem precisar gerar de novo.
 
 ## Executar
 
+Dentro da pasta do projeto, qualquer uma destas funciona:
+
 ```bash
-uv run --project ~/Projetos/video_manager video-manager
+uv run videos.py            # como no comic-translate
+uv run video-manager        # comando declarado em [project.scripts]
+uv run python -m video_manager
+```
+
+De qualquer outro lugar, passando o caminho do script — o uv descobre o projeto
+pelo diretório do arquivo, não pelo diretório atual:
+
+```bash
+uv run ~/Projetos/video_manager/videos.py
 ```
 
 Atalho útil no `~/.zshrc`:
 
 ```bash
-alias videos='uv run --project ~/Projetos/video_manager video-manager'
+alias videos='uv run ~/Projetos/video_manager/videos.py'
 ```
 
 ## Como funciona
