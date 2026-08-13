@@ -7,27 +7,32 @@ O motor de extração de frames é o mesmo do notebook `Thumbnail Maker` — inc
 a convenção de nome das thumbnails (`meu_video.mp4.jpg`), então as thumbs que você
 já gerou são reaproveitadas sem precisar gerar de novo.
 
-## Executar
-
-Dentro da pasta do projeto, qualquer uma destas funciona:
+## Instalar
 
 ```bash
-uv run videos.py            # como no comic-translate
+uv tool install --editable ~/Projetos/video_manager
+```
+
+Isso coloca o comando `video-manager` em `~/.local/bin`, então ele roda de
+qualquer pasta, sem `uv` na frente:
+
+```bash
+video-manager
+```
+
+Como a instalação é `--editable`, o comando aponta para o código desta pasta:
+editar um arquivo já vale na próxima execução, sem reinstalar. Só é preciso
+rodar `uv tool upgrade video-manager` se as **dependências** do projeto mudarem.
+
+Para desinstalar: `uv tool uninstall video-manager`.
+
+## Executar sem instalar
+
+Dentro da pasta do projeto:
+
+```bash
 uv run video-manager        # comando declarado em [project.scripts]
 uv run python -m video_manager
-```
-
-De qualquer outro lugar, passando o caminho do script — o uv descobre o projeto
-pelo diretório do arquivo, não pelo diretório atual:
-
-```bash
-uv run ~/Projetos/video_manager/videos.py
-```
-
-Atalho útil no `~/.zshrc`:
-
-```bash
-alias videos='uv run ~/Projetos/video_manager/videos.py'
 ```
 
 ## Como funciona
