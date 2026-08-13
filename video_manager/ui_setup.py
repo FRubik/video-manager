@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from . import library
 from .config import Config
+from .ui_shortcuts import ShortcutsDialog
 
 
 class FolderPicker(QWidget):
@@ -76,6 +77,7 @@ class FolderPicker(QWidget):
 
 class SetupView(QWidget):
     start_requested = Signal(Config)
+    key_bindings_changed = Signal(dict)
 
     def __init__(self, config: Config, parent=None):
         super().__init__(parent)
@@ -203,11 +205,15 @@ class SetupView(QWidget):
         actions = QHBoxLayout()
         rescan = QPushButton("Reanalisar pastas")
         rescan.clicked.connect(self.refresh_summary)
+        shortcuts_button = QPushButton("Atalhos…")
+        shortcuts_button.setToolTip("Escolher as teclas usadas na tela de revisão")
+        shortcuts_button.clicked.connect(self._edit_shortcuts)
         self.start_button = QPushButton("Iniciar")
         self.start_button.setDefault(True)
         self.start_button.setMinimumWidth(140)
         self.start_button.clicked.connect(self._emit_start)
         actions.addWidget(rescan)
+        actions.addWidget(shortcuts_button)
         actions.addStretch()
         actions.addWidget(self.start_button)
         root.addLayout(actions)
@@ -256,6 +262,14 @@ class SetupView(QWidget):
         c.session_size = self.session_size.value()
         c.skip_reviewed = self.skip_reviewed.isChecked()
         return c
+
+    def _edit_shortcuts(self) -> None:
+        dialog = ShortcutsDialog(self.config.key_bindings, self)
+        if dialog.exec() != ShortcutsDialog.Accepted:
+            return
+        self.config.key_bindings = dialog.key_bindings()
+        self.config.save()
+        self.key_bindings_changed.emit(self.config.key_bindings)
 
     def _use_default_trash(self) -> None:
         if not self.videos_picker.text():

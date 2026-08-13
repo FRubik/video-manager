@@ -36,7 +36,10 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.review_view)
         self.setCentralWidget(self.stack)
 
+        self.review_view.apply_key_bindings(self.config.key_bindings)
+
         self.setup_view.start_requested.connect(self.on_start)
+        self.setup_view.key_bindings_changed.connect(self.review_view.apply_key_bindings)
         self.review_view.session_finished.connect(self.on_session_finished)
 
         self._worker: ThumbWorker | None = None

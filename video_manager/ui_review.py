@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from . import library
+from . import library, shortcuts
 from .library import DELETE, KEEP, ReviewState, VideoEntry
 
 COLOR_KEEP = "#2e7d32"
@@ -103,8 +103,9 @@ class ReviewView(QWidget):
         # a view precisa poder receber foco para que os atalhos (contexto
         # WidgetWithChildren) cheguem até ela
         self.setFocusPolicy(Qt.StrongFocus)
+        self._shortcuts: list[QShortcut] = []
         self._build_ui()
-        self._install_shortcuts()
+        self.apply_key_bindings(shortcuts.DEFAULTS)
 
     # ------------------------------------------------------------------ UI
     def _build_ui(self) -> None:
@@ -143,11 +144,11 @@ class ReviewView(QWidget):
         root.addWidget(self.info_label)
 
         buttons = QHBoxLayout()
-        self.prev_button = QPushButton("← Anterior")
-        self.next_button = QPushButton("Próximo →")
-        self.keep_button = QPushButton("Manter (K)")
-        self.delete_button = QPushButton("Apagar (D)")
-        self.open_button = QPushButton("Abrir vídeo (O)")
+        self.prev_button = QPushButton("Anterior")
+        self.next_button = QPushButton("Próximo")
+        self.keep_button = QPushButton("Manter")
+        self.delete_button = QPushButton("Apagar")
+        self.open_button = QPushButton("Abrir vídeo")
         self.finish_button = QPushButton("Aplicar e finalizar")
 
         self.keep_button.setStyleSheet(f"font-weight: 600; color: {COLOR_KEEP};")
@@ -171,29 +172,54 @@ class ReviewView(QWidget):
         buttons.addWidget(self.finish_button)
         root.addLayout(buttons)
 
-        hint = QLabel(
-            "K/→ manter · D apagar · ←/→ navegar · O abrir no player · "
-            "Z ou clique = zoom 1:1 · Enter aplica"
-        )
-        hint.setStyleSheet("color: #888; font-size: 11px;")
-        root.addWidget(hint)
+        self.hint = QLabel()
+        self.hint.setWordWrap(True)
+        self.hint.setStyleSheet("color: #888; font-size: 11px;")
+        root.addWidget(self.hint)
 
-    def _install_shortcuts(self) -> None:
-        def add(seq: str, slot):
-            shortcut = QShortcut(QKeySequence(seq), self)
+    def apply_key_bindings(self, key_bindings: dict) -> None:
+        """Reinstala os atalhos e reescreve rótulos e dica com as teclas atuais."""
+        mapping = shortcuts.normalize(key_bindings)
+
+        for shortcut in self._shortcuts:
+            shortcut.setEnabled(False)
+            shortcut.deleteLater()
+        self._shortcuts.clear()
+
+        slots = {
+            "prev": self.go_previous,
+            "next": self.go_next,
+            "keep": lambda: self.decide(KEEP),
+            "delete": lambda: self.decide(DELETE),
+            "open": self.open_current_video,
+            "zoom": self.viewer.toggle_zoom,
+        }
+
+        def add(sequence: str, slot) -> None:
+            if not sequence:
+                return
+            shortcut = QShortcut(QKeySequence(sequence), self)
             shortcut.setContext(Qt.WidgetWithChildrenShortcut)
             shortcut.activated.connect(slot)
+            self._shortcuts.append(shortcut)
 
-        add("K", lambda: self.decide(KEEP))
-        add("D", lambda: self.decide(DELETE))
-        add("Del", lambda: self.decide(DELETE))
-        add("Right", self.go_next)
-        add("Left", self.go_previous)
-        add("Space", self.go_next)
-        add("O", self.open_current_video)
-        add("Z", self.viewer.toggle_zoom)
-        add("Return", self.finish)
-        add("Enter", self.finish)
+        escolhidas = {shortcuts.canonical(v) for v in mapping.values()}
+        for action in shortcuts.ACTIONS:
+            slot = slots[action.key]
+            add(mapping[action.key], slot)
+            for alternativa in action.extra:
+                # uma alternativa fixa não pode roubar a tecla escolhida para outra ação
+                if shortcuts.canonical(alternativa) not in escolhidas:
+                    add(alternativa, slot)
+        for sequence in shortcuts.APPLY_KEYS:
+            add(sequence, self.finish)
+
+        self.prev_button.setText(f"← Anterior ({mapping['prev']})")
+        self.next_button.setText(f"Próximo ({mapping['next']}) →")
+        self.keep_button.setText(f"Manter ({mapping['keep']})")
+        self.delete_button.setText(f"Apagar ({mapping['delete']})")
+        self.open_button.setText(f"Abrir vídeo ({mapping['open']})")
+        self.hint.setText(shortcuts.describe(mapping) + " · clique na imagem = zoom")
 
     # -------------------------------------------------------------- sessão
     def load_session(self, entries: list[VideoEntry], trash_dir: Path, state: ReviewState) -> None:

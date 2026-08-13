@@ -70,15 +70,21 @@ já foram revisados e quantos entram nesta sessão.
 
 Uma thumbnail por vez, ocupando a janela, com a lista da sessão à direita.
 
+As teclas padrão ficam agrupadas à esquerda, para revisar com uma mão só:
+
 | Tecla | Ação |
 |---|---|
-| `D` ou `Del` | marca para apagar e avança |
-| `K` | marca para manter e avança |
-| `←` / `→` | navega (dá para voltar e trocar a decisão) |
-| `Espaço` | avança sem decidir |
-| `O` | abre o vídeo no player padrão do sistema |
+| `A` ou `←` | vídeo anterior (dá para voltar e trocar a decisão) |
+| `D`, `→` ou `Espaço` | próximo vídeo, sem decidir |
+| `E` | marca para manter e avança |
+| `Q` ou `Del` | marca para apagar e avança |
+| `G` | abre o vídeo no player padrão do sistema |
 | `Z` ou clique | alterna entre ajustar à janela e zoom 1:1 |
 | `Enter` | aplica as decisões e encerra a sessão |
+
+O botão **Atalhos…**, na tela inicial, troca as teclas de cada ação — a escolha
+fica salva no `config.json`. As alternativas da tabela (`←`, `→`, `Espaço`,
+`Del`) continuam valendo, e `Enter` não é remapeável.
 
 Nada é movido enquanto você decide — as marcações só são aplicadas em **Aplicar e
 finalizar** (ou no fim da sessão, que pergunta), sempre com confirmação.
@@ -98,12 +104,12 @@ finalizar** (ou no fim da sessão, que pergunta), sempre com confirmação.
 |---|---|---|
 | `.video_manager_state.json` | pasta de thumbnails | histórico de decisões (alimenta o "pular já revisados") |
 | `_movimentos.jsonl` | pasta de descartes | log dos vídeos movidos |
-| `config.json` | `~/.config/video_manager/` | últimas pastas e opções usadas |
+| `config.json` | `~/.config/video_manager/` | últimas pastas, opções usadas e atalhos |
 
 O histórico fica junto das thumbs de propósito: se a pasta mudar de lugar ou de
 máquina, ele vai junto.
 
-## Nota sobre abrir o vídeo no player (tecla `O`)
+## Nota sobre abrir o vídeo no player (tecla `G`)
 
 Duas armadilhas custaram um crash do VLC e estão resolvidas — vale saber, porque
 qualquer código novo que lance um programa externo esbarra nelas de novo:

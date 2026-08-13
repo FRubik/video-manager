@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
+
+from . import shortcuts
 
 CONFIG_PATH = Path.home() / ".config" / "video_manager" / "config.json"
 
@@ -31,6 +33,9 @@ class Config:
     session_size: int = 30
     skip_reviewed: bool = True
 
+    # atalhos da tela de revisão: ação -> tecla
+    key_bindings: dict = field(default_factory=lambda: dict(shortcuts.DEFAULTS))
+
     @classmethod
     def load(cls) -> "Config":
         try:
@@ -38,7 +43,10 @@ class Config:
         except (OSError, ValueError):
             return cls()
         known = {f.name for f in fields(cls)}
-        return cls(**{k: v for k, v in raw.items() if k in known})
+        config = cls(**{k: v for k, v in raw.items() if k in known})
+        # configs antigas não têm a chave, e uma ação nova precisa do padrão
+        config.key_bindings = shortcuts.normalize(config.key_bindings)
+        return config
 
     def save(self) -> None:
         try:
