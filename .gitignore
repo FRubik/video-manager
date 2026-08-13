@@ -1,0 +1,19 @@
+# ambiente
+.venv/
+.python-version
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# editores
+.vscode/
+.idea/
+
+# estado local do app (nunca deve ir para o repositório)
+config.json
+.video_manager_state.json
+_movimentos.jsonl

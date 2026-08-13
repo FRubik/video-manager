@@ -1,0 +1,292 @@
+"""Tela inicial: pastas, opções de geração e formato da sessão de revisão."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QDoubleSpinBox,
+    QFileDialog,
+    QFormLayout,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QRadioButton,
+    QSpinBox,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from . import library
+from .config import Config
+
+
+class FolderPicker(QWidget):
+    """Campo de texto com botão de procurar pasta."""
+
+    changed = Signal()
+
+    def __init__(self, placeholder: str = "", parent=None):
+        super().__init__(parent)
+        self.edit = QLineEdit()
+        self.edit.setPlaceholderText(placeholder)
+        self.edit.editingFinished.connect(self.changed.emit)
+
+        button = QToolButton()
+        button.setText("…")
+        button.setToolTip("Escolher pasta")
+        button.clicked.connect(self._browse)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.edit)
+        layout.addWidget(button)
+
+    def _browse(self) -> None:
+        start = self.edit.text().strip() or str(Path.home())
+        chosen = QFileDialog.getExistingDirectory(self, "Escolher pasta", start)
+        if chosen:
+            self.edit.setText(chosen)
+            self.changed.emit()
+
+    def path(self) -> Path:
+        return Path(self.edit.text().strip()).expanduser()
+
+    def text(self) -> str:
+        return self.edit.text().strip()
+
+    def setText(self, value: str) -> None:
+        self.edit.setText(value)
+
+
+class SetupView(QWidget):
+    start_requested = Signal(Config)
+
+    def __init__(self, config: Config, parent=None):
+        super().__init__(parent)
+        self.config = config
+        self._build_ui()
+        self._load_config()
+        self.refresh_summary()
+
+    # ------------------------------------------------------------------ UI
+    def _build_ui(self) -> None:
+        root = QVBoxLayout(self)
+        root.setContentsMargins(24, 20, 24, 20)
+        root.setSpacing(14)
+
+        title = QLabel("Gerenciador de Vídeos")
+        title.setStyleSheet("font-size: 20px; font-weight: 600;")
+        root.addWidget(title)
+
+        # --- pastas ---
+        folders = QGroupBox("Pastas")
+        form = QFormLayout(folders)
+        self.videos_picker = FolderPicker("pasta com os vídeos")
+        self.thumbs_picker = FolderPicker("pasta onde ficam/serão salvas as thumbs")
+        self.trash_picker = FolderPicker("quarentena (padrão: <vídeos>/_para_apagar)")
+        form.addRow("Vídeos:", self.videos_picker)
+        form.addRow("Thumbnails:", self.thumbs_picker)
+        form.addRow("Descartes:", self.trash_picker)
+        root.addWidget(folders)
+
+        self.videos_picker.changed.connect(self._on_videos_changed)
+        self.thumbs_picker.changed.connect(self.refresh_summary)
+
+        # --- geração ---
+        self.gen_group = QGroupBox("Gerar thumbnails")
+        self.gen_group.setCheckable(True)
+        self.gen_group.setToolTip(
+            "Desmarcado: abre direto a interface de revisão usando as thumbs já existentes."
+        )
+        gen_form = QFormLayout(self.gen_group)
+
+        self.only_missing = QCheckBox("Somente vídeos que ainda não têm thumbnail")
+        gen_form.addRow(self.only_missing)
+
+        grid_row = QHBoxLayout()
+        self.n_rows = QSpinBox()
+        self.n_rows.setRange(1, 12)
+        self.n_cols = QSpinBox()
+        self.n_cols.setRange(1, 12)
+        grid_row.addWidget(QLabel("linhas"))
+        grid_row.addWidget(self.n_rows)
+        grid_row.addSpacing(12)
+        grid_row.addWidget(QLabel("colunas"))
+        grid_row.addWidget(self.n_cols)
+        grid_row.addStretch()
+        gen_form.addRow("Grade:", self._wrap(grid_row))
+
+        detail_row = QHBoxLayout()
+        self.cell_height = QSpinBox()
+        self.cell_height.setRange(60, 800)
+        self.cell_height.setSingleStep(20)
+        self.cell_height.setSuffix(" px")
+        self.margin = QDoubleSpinBox()
+        self.margin.setRange(0.0, 0.45)
+        self.margin.setSingleStep(0.01)
+        self.margin.setDecimals(2)
+        self.workers = QSpinBox()
+        self.workers.setRange(1, 32)
+        detail_row.addWidget(QLabel("altura da célula"))
+        detail_row.addWidget(self.cell_height)
+        detail_row.addSpacing(12)
+        detail_row.addWidget(QLabel("margem"))
+        detail_row.addWidget(self.margin)
+        detail_row.addSpacing(12)
+        detail_row.addWidget(QLabel("threads"))
+        detail_row.addWidget(self.workers)
+        detail_row.addStretch()
+        gen_form.addRow("Detalhes:", self._wrap(detail_row))
+
+        self.add_timestamp = QCheckBox("Escrever o tempo em cada frame")
+        gen_form.addRow(self.add_timestamp)
+        root.addWidget(self.gen_group)
+
+        self.gen_group.toggled.connect(self.refresh_summary)
+
+        # --- sessão ---
+        session = QGroupBox("Sessão de revisão")
+        session_layout = QVBoxLayout(session)
+
+        self.mode_all = QRadioButton("Revisar todos os vídeos com thumbnail")
+        self.mode_random = QRadioButton("Verificação randômica — sortear apenas")
+        random_row = QHBoxLayout()
+        random_row.addWidget(self.mode_random)
+        self.session_size = QSpinBox()
+        self.session_size.setRange(1, 10000)
+        self.session_size.setSuffix(" vídeos")
+        random_row.addWidget(self.session_size)
+        random_row.addStretch()
+
+        self.skip_reviewed = QCheckBox("Pular vídeos que já revisei em sessões anteriores")
+        session_layout.addWidget(self.mode_all)
+        session_layout.addLayout(random_row)
+        session_layout.addWidget(self.skip_reviewed)
+        root.addWidget(session)
+
+        self.mode_random.toggled.connect(self.session_size.setEnabled)
+        self.mode_random.toggled.connect(self.refresh_summary)
+        self.skip_reviewed.toggled.connect(self.refresh_summary)
+
+        # --- resumo + ação ---
+        self.summary = QLabel()
+        self.summary.setWordWrap(True)
+        self.summary.setFrameShape(QFrame.StyledPanel)
+        self.summary.setStyleSheet("padding: 8px;")
+        root.addWidget(self.summary)
+
+        root.addStretch()
+
+        actions = QHBoxLayout()
+        rescan = QPushButton("Reanalisar pastas")
+        rescan.clicked.connect(self.refresh_summary)
+        self.start_button = QPushButton("Iniciar")
+        self.start_button.setDefault(True)
+        self.start_button.setMinimumWidth(140)
+        self.start_button.clicked.connect(self._emit_start)
+        actions.addWidget(rescan)
+        actions.addStretch()
+        actions.addWidget(self.start_button)
+        root.addLayout(actions)
+
+    @staticmethod
+    def _wrap(layout) -> QWidget:
+        holder = QWidget()
+        holder.setLayout(layout)
+        return holder
+
+    # --------------------------------------------------------------- estado
+    def _load_config(self) -> None:
+        c = self.config
+        self.videos_picker.setText(c.videos_dir)
+        self.thumbs_picker.setText(c.thumbs_dir)
+        self.trash_picker.setText(c.trash_dir)
+        self.gen_group.setChecked(c.generate_thumbs)
+        self.only_missing.setChecked(c.only_missing)
+        self.n_rows.setValue(c.n_rows)
+        self.n_cols.setValue(c.n_cols)
+        self.cell_height.setValue(c.cell_height)
+        self.margin.setValue(c.margin)
+        self.workers.setValue(c.workers)
+        self.add_timestamp.setChecked(c.add_timestamp)
+        self.mode_random.setChecked(c.random_session)
+        self.mode_all.setChecked(not c.random_session)
+        self.session_size.setValue(c.session_size)
+        self.session_size.setEnabled(c.random_session)
+        self.skip_reviewed.setChecked(c.skip_reviewed)
+
+    def current_config(self) -> Config:
+        c = self.config
+        c.videos_dir = self.videos_picker.text()
+        c.thumbs_dir = self.thumbs_picker.text()
+        c.trash_dir = self.trash_picker.text()
+        c.generate_thumbs = self.gen_group.isChecked()
+        c.only_missing = self.only_missing.isChecked()
+        c.n_rows = self.n_rows.value()
+        c.n_cols = self.n_cols.value()
+        c.cell_height = self.cell_height.value()
+        c.margin = self.margin.value()
+        c.workers = self.workers.value()
+        c.add_timestamp = self.add_timestamp.isChecked()
+        c.random_session = self.mode_random.isChecked()
+        c.session_size = self.session_size.value()
+        c.skip_reviewed = self.skip_reviewed.isChecked()
+        return c
+
+    def _on_videos_changed(self) -> None:
+        if not self.trash_picker.text() and self.videos_picker.text():
+            self.trash_picker.setText(str(library.default_trash_dir(self.videos_picker.path())))
+        self.refresh_summary()
+
+    def refresh_summary(self) -> None:
+        videos_dir = self.videos_picker.path()
+        thumbs_dir = self.thumbs_picker.path()
+
+        if not self.videos_picker.text() or not videos_dir.is_dir():
+            self.summary.setText("Selecione uma pasta de vídeos válida para começar.")
+            self.start_button.setEnabled(False)
+            return
+
+        entries = library.scan(videos_dir, thumbs_dir)
+        total = len(entries)
+        with_thumb = sum(1 for e in entries if e.thumb is not None)
+        missing = total - with_thumb
+
+        state = library.ReviewState(thumbs_dir)
+        reviewed = sum(1 for e in entries if state.was_reviewed(e.name))
+        will_generate = self.gen_group.isChecked()
+        pending = library.build_session(
+            entries,
+            state,
+            random_session=False,
+            session_size=0,
+            skip_reviewed=self.skip_reviewed.isChecked(),
+            # se as thumbs vão ser geradas agora, os vídeos sem thumb também entram
+            require_thumb=not will_generate,
+        )
+
+        session_count = len(pending)
+        if self.mode_random.isChecked():
+            session_count = min(session_count, self.session_size.value())
+
+        lines = [
+            f"<b>{total}</b> vídeos · <b>{with_thumb}</b> com thumbnail · <b>{missing}</b> sem thumbnail",
+            f"<b>{reviewed}</b> já revisados em sessões anteriores",
+            f"Esta sessão vai mostrar <b>{session_count}</b> vídeo(s).",
+        ]
+        if missing and not will_generate:
+            lines.append(
+                "<i>Os vídeos sem thumbnail ficam de fora — marque “Gerar thumbnails” para incluí-los.</i>"
+            )
+        self.summary.setText("<br>".join(lines))
+        self.start_button.setEnabled(total > 0)
+
+    def _emit_start(self) -> None:
+        self.start_requested.emit(self.current_config())
