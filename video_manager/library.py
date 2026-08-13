@@ -184,6 +184,29 @@ def default_trash_dir(videos_dir: Path) -> Path:
     return videos_dir / "_para_apagar"
 
 
+#: variáveis que o OpenCV reescreve e que envenenam qualquer app Qt filho
+_QT_VARS_ENVENENADAS = (
+    "QT_QPA_PLATFORM_PLUGIN_PATH",
+    "QT_PLUGIN_PATH",
+    "QT_QPA_FONTDIR",
+    "LD_LIBRARY_PATH",
+)
+
+
+def launch_env() -> dict[str, str]:
+    """Ambiente limpo para processos externos (ver PRISTINE_ENV em __init__)."""
+    from . import PRISTINE_ENV
+
+    env = dict(PRISTINE_ENV)
+    # cinto de segurança: se o shell de origem já trazia algum desses caminhos
+    # apontando para um site-packages, ele também não deve ir para o filho
+    for var in _QT_VARS_ENVENENADAS:
+        valor = env.get(var, "")
+        if "site-packages" in valor or "/cv2/" in valor:
+            env.pop(var, None)
+    return env
+
+
 def open_in_player(path: Path) -> tuple[bool, str]:
     """Abre o vídeo no player padrão do sistema.
 
@@ -212,6 +235,7 @@ def open_in_player(path: Path) -> tuple[bool, str]:
             start_new_session=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            env=launch_env(),
         )
         return True, ""
     except OSError as exc:

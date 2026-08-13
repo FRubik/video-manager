@@ -75,6 +75,25 @@ finalizar** (ou no fim da sessão, que pergunta), sempre com confirmação.
 O histórico fica junto das thumbs de propósito: se a pasta mudar de lugar ou de
 máquina, ele vai junto.
 
+## Nota sobre abrir o vídeo no player (tecla `O`)
+
+Duas armadilhas custaram um crash do VLC e estão resolvidas — vale saber, porque
+qualquer código novo que lance um programa externo esbarra nelas de novo:
+
+1. **Não passe URL `file://`.** O `.desktop` do VLC recebe a URL via `%U`, e
+   nomes com `#`, `%`, `&` ou espaços podem ser reinterpretados no caminho. O
+   caminho vai como argumento único para `xdg-open`.
+
+2. **Não deixe o processo filho herdar o ambiente sujo.** O `import cv2`
+   sobrescreve `QT_QPA_PLATFORM_PLUGIN_PATH`, `QT_QPA_FONTDIR` e
+   `LD_LIBRARY_PATH` apontando para dentro do site-packages do OpenCV, que traz
+   um único `libqxcb.so` ligado às libs Qt dele. Um app Qt lançado como filho
+   tenta carregar aquele plugin e aborta com `Could not load the Qt platform
+   plugin "xcb"` — o VLC morria com SIGABRT antes mesmo de olhar o arquivo.
+   Por isso `video_manager/__init__.py` guarda `PRISTINE_ENV` (cópia do ambiente
+   feita antes de qualquer import pesado) e `library.launch_env()` a entrega aos
+   processos externos.
+
 ## Estrutura
 
 ```
