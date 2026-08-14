@@ -97,7 +97,7 @@ class MainWindow(QMainWindow):
     # ----------------------------------------------------------- thumbnails
     def _start_generation(self, config: Config, videos_dir: Path, thumbs_dir: Path) -> None:
         # o "talvez" entra aqui também: sem thumbnail ele não apareceria na revisão
-        maybe_dir = Path(config.maybe_dir).expanduser() if config.include_maybe else None
+        maybe_dir = Path(config.maybe_dir).expanduser() if config.scans_maybe else None
         entries = library.scan(videos_dir, thumbs_dir, maybe_dir)
         pending = [e.video for e in entries if not (config.only_missing and e.thumb is not None)]
 
@@ -174,7 +174,7 @@ class MainWindow(QMainWindow):
         maybe_dir = Path(config.maybe_dir).expanduser()
 
         entries: list[VideoEntry] = library.scan(
-            videos_dir, thumbs_dir, maybe_dir if config.include_maybe else None
+            videos_dir, thumbs_dir, maybe_dir if config.scans_maybe else None
         )
         state = ReviewState(thumbs_dir)
         session = library.build_session(
@@ -183,15 +183,19 @@ class MainWindow(QMainWindow):
             random_session=config.random_session,
             session_size=config.session_size,
             skip_reviewed=config.skip_reviewed,
+            only_maybe=config.only_maybe,
+            shuffle=config.shuffle_order,
         )
 
         if not session:
-            QMessageBox.information(
-                self,
-                "Nada para revisar",
-                "Nenhum vídeo com thumbnail pendente de revisão.\n"
-                "Desmarque “Pular vídeos já revisados” para rever tudo de novo.",
+            motivo = (
+                "Nenhum vídeo com thumbnail na pasta “talvez”.\n"
+                "Escolha “incluir na sessão” ou “deixar de fora” para rever o resto."
+                if config.only_maybe
+                else "Nenhum vídeo com thumbnail pendente de revisão.\n"
+                "Desmarque “Pular vídeos já revisados” para rever tudo de novo."
             )
+            QMessageBox.information(self, "Nada para revisar", motivo)
             return
 
         self.review_view.load_session(

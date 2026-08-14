@@ -65,8 +65,16 @@ use o Python da própria ferramenta:
     fatiar uma pasta grande ao longo de vários dias;
   - *Pular vídeos que já revisei* — usa o histórico para não repetir o que você
     já decidiu em sessões anteriores;
-  - *Incluir os vídeos marcados como "talvez"* — traz de volta o que ficou
-    pendente de uma segunda olhada (veja abaixo).
+  - *Mostrar em ordem randômica* — embaralha a exibição em vez de seguir o
+    alfabeto. Numa pasta onde os nomes agrupam o conteúdo, a ordem alfabética
+    faz você ver tudo de um tipo de uma vez;
+  - *Vídeos do "talvez"* — **deixar de fora**, **incluir na sessão** (junto com
+    os demais) ou **somente eles**, para uma rodada dedicada às dúvidas que
+    você já acumulou (veja abaixo).
+
+Sortear *quais* vídeos e escolher em que *ordem* mostrá-los são coisas
+separadas: a verificação randômica sorteia a amostra e a exibe em ordem
+alfabética, a menos que você também marque a ordem randômica.
 
 Quando existe uma **sessão interrompida** guardada para essas pastas, um painel
 alaranjado aparece acima do resumo, com **Retomar** e **Descartar** — veja
@@ -108,13 +116,19 @@ com outro, decidir com a cabeça mais fria. `W` manda para a pasta *talvez* em v
 de decidir na hora.
 
 O que separa o *talvez* de uma decisão: ele **não entra no histórico como
-revisado**. Com *Incluir os vídeos marcados como "talvez"* ligado, esses vídeos
-voltam a aparecer nas próximas sessões junto com os novos, sem você mexer em
-campo nenhum. Quando finalmente decidir:
+revisado**. Com *incluir na sessão*, esses vídeos voltam a aparecer nas próximas
+sessões junto com os novos, sem você mexer em campo nenhum. Quando finalmente
+decidir:
 
 - **manter** devolve o vídeo à pasta de vídeos e aí sim registra como revisado;
 - **apagar** manda para a quarentena, como qualquer outro;
 - **talvez** de novo deixa onde está, para a próxima rodada.
+
+A opção *somente eles* existe para a outra ponta desse ciclo: uma sessão inteira
+feita das dúvidas acumuladas, sem nenhum vídeo novo no meio. É o momento de
+sentar e resolver a pilha — comparar os parecidos, abrir no player o que a
+thumbnail não resolve — em vez de adiar cada um de novo. Vale combinar com a
+verificação randômica quando a pilha ficou grande demais para uma sentada.
 
 ### 4. O que acontece ao aplicar
 
