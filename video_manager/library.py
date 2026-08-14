@@ -8,7 +8,7 @@ import random
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
@@ -28,6 +28,9 @@ MAYBE = "maybe"
 #: decisões finais — só elas contam como "já revisado"
 FINAL_DECISIONS = (KEEP, DELETE)
 
+#: abaixo disso a taxa de descarte é ruído (com 1 decisão ela seria 0% ou 100%)
+MIN_DECIDED_FOR_RATE = 5
+
 
 @dataclass
 class VideoEntry:
@@ -38,17 +41,43 @@ class VideoEntry:
     decision: str | None = None  # None | KEEP | DELETE | MAYBE
     #: veio da pasta "talvez", e volta para a pasta de vídeos se for mantido
     from_maybe: bool = False
+    _size: int | None = field(default=None, repr=False, compare=False)
 
     @property
     def name(self) -> str:
         return self.video.name
 
     @property
+    def size_bytes(self) -> int:
+        """Tamanho em bytes, lido uma vez só.
+
+        O cache não é só desempenho: depois de aplicar a sessão o arquivo já
+        saiu do caminho original, e as estatísticas ainda precisam do número.
+        """
+        if self._size is None:
+            try:
+                self._size = self.video.stat().st_size
+            except OSError:
+                self._size = 0
+        return self._size
+
+    @property
     def size_mb(self) -> float:
-        try:
-            return self.video.stat().st_size / (1024 * 1024)
-        except OSError:
-            return 0.0
+        return self.size_bytes / (1024 * 1024)
+
+
+def format_size(num_bytes: float) -> str:
+    """Tamanho legível no formato brasileiro (`1.234,5 GB`)."""
+    valor = float(num_bytes)
+    unidade = "B"
+    for proxima in ("KB", "MB", "GB", "TB"):
+        if abs(valor) < 1024:
+            break
+        valor /= 1024
+        unidade = proxima
+    texto = f"{valor:,.{0 if unidade == 'B' else 1}f}"
+    # de 1,234.5 (padrão do Python) para 1.234,5
+    return texto.replace(",", "\x00").replace(".", ",").replace("\x00", ".") + f" {unidade}"
 
 
 def list_videos(videos_dir: Path) -> list[Path]:
@@ -120,15 +149,19 @@ class ReviewState:
 
     def was_reviewed(self, name: str) -> bool:
         """Só decisão final conta: o "talvez" existe justamente para voltar."""
-        entry = self.reviewed.get(name)
-        if not isinstance(entry, dict):
-            return False
-        return entry.get("decision") in FINAL_DECISIONS
+        return self.decision_of(name) in FINAL_DECISIONS
 
-    def record(self, name: str, decision: str) -> None:
+    def decision_of(self, name: str) -> str | None:
+        entry = self.reviewed.get(name)
+        return entry.get("decision") if isinstance(entry, dict) else None
+
+    def record(self, name: str, decision: str, size_bytes: int = 0) -> None:
         self.reviewed[name] = {
             "decision": decision,
             "at": datetime.now().isoformat(timespec="seconds"),
+            # guardado para as estatísticas de volume: depois de mover o vídeo
+            # não há mais como medir o que saiu da pasta
+            "size": size_bytes,
         }
 
     def forget(self, name: str) -> None:
@@ -164,6 +197,140 @@ def build_session(
         pool = random.sample(pool, session_size)
         pool.sort(key=lambda e: e.name.lower())
     return pool
+
+
+@dataclass
+class Stats:
+    """Volume da pasta e o ritmo de descarte, para projetar o que vai sobrar."""
+
+    total_count: int = 0
+    total_bytes: int = 0
+    #: ainda sem decisão final (o "talvez" conta como pendente, por definição)
+    pending_count: int = 0
+    pending_bytes: int = 0
+    maybe_count: int = 0
+    maybe_bytes: int = 0
+    #: volume já decidido, somando histórico e sessão em andamento
+    keep_bytes: int = 0
+    delete_bytes: int = 0
+    decided_count: int = 0
+    #: o que está parado na quarentena, ainda ocupando disco
+    trash_count: int = 0
+    trash_bytes: int = 0
+    #: marcado na sessão em andamento, ainda não aplicado
+    session: dict[str, tuple[int, int]] = field(
+        default_factory=lambda: {d: (0, 0) for d in (KEEP, DELETE, MAYBE)}
+    )
+
+    def session_count(self, decision: str) -> int:
+        return self.session[decision][0]
+
+    def session_bytes(self, decision: str) -> int:
+        return self.session[decision][1]
+
+    @property
+    def decided_bytes(self) -> int:
+        return self.keep_bytes + self.delete_bytes
+
+    @property
+    def discard_rate(self) -> float | None:
+        """Fração do volume decidido que foi para a quarentena.
+
+        None enquanto a amostra for pequena demais para significar algo.
+        """
+        if self.decided_bytes <= 0 or self.decided_count < MIN_DECIDED_FOR_RATE:
+            return None
+        return self.delete_bytes / self.decided_bytes
+
+    @property
+    def estimated_remaining(self) -> int | None:
+        """Quanto a pasta deve ter no fim, se o ritmo atual se mantiver.
+
+        O que já foi descartado não está mais em `total_bytes`; encolhem
+        apenas o que está marcado para sair e a parcela projetada do pendente.
+        """
+        rate = self.discard_rate
+        if rate is None:
+            return None
+        sai_agora = self.session_bytes(DELETE)
+        return round(self.total_bytes - sai_agora - self.pending_bytes * rate)
+
+
+def folder_size(folder: Path) -> tuple[int, int]:
+    """(quantidade, bytes) dos vídeos no primeiro nível da pasta."""
+    total = 0
+    videos = list_videos(folder)
+    for video in videos:
+        try:
+            total += video.stat().st_size
+        except OSError:
+            pass
+    return len(videos), total
+
+
+def collect_stats(
+    entries: list[VideoEntry],
+    state: ReviewState,
+    *,
+    trash_dir: Path | None = None,
+    session: list[VideoEntry] | None = None,
+) -> Stats:
+    """Estatísticas de volume da pasta varrida.
+
+    `session` são as decisões ainda não aplicadas, que valem mais que o
+    histórico para os mesmos vídeos — assim a projeção reage enquanto você
+    revisa, e não só depois de aplicar.
+    """
+    pendente_na_sessao = {
+        e.name: e.decision for e in (session or []) if e.decision is not None
+    }
+
+    # nome -> (decisão final, bytes); inclui vídeos que já saíram da pasta
+    decididos: dict[str, tuple[str, int]] = {}
+    for name, record in state.reviewed.items():
+        if not isinstance(record, dict):
+            continue
+        decisao, tamanho = record.get("decision"), record.get("size")
+        if decisao in FINAL_DECISIONS and isinstance(tamanho, int) and tamanho > 0:
+            decididos[name] = (decisao, tamanho)
+
+    stats = Stats()
+    for entry in entries:
+        stats.total_count += 1
+        stats.total_bytes += entry.size_bytes
+        if entry.from_maybe:
+            stats.maybe_count += 1
+            stats.maybe_bytes += entry.size_bytes
+
+        decisao = pendente_na_sessao.get(entry.name)
+        if decisao in FINAL_DECISIONS:
+            decididos[entry.name] = (decisao, entry.size_bytes)
+        elif decisao is None and state.was_reviewed(entry.name):
+            # decidido antes e ainda na pasta: não é pendente. Se o histórico
+            # não trouxe o tamanho, ele fica de fora da taxa — medir o arquivo
+            # agora só puxaria a taxa para baixo, porque os descartes antigos
+            # já saíram da pasta e não teriam a mesma chance de ser medidos.
+            pass
+        else:
+            stats.pending_count += 1
+            stats.pending_bytes += entry.size_bytes
+
+    for decisao, tamanho in decididos.values():
+        stats.decided_count += 1
+        if decisao == KEEP:
+            stats.keep_bytes += tamanho
+        else:
+            stats.delete_bytes += tamanho
+
+    for entry in session or []:
+        if entry.decision is None:
+            continue
+        quantos, bytes_ = stats.session[entry.decision]
+        stats.session[entry.decision] = (quantos + 1, bytes_ + entry.size_bytes)
+
+    if trash_dir is not None:
+        stats.trash_count, stats.trash_bytes = folder_size(trash_dir)
+    return stats
 
 
 def unique_destination(dest: Path) -> Path:
