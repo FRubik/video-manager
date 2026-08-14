@@ -98,6 +98,8 @@ class ReviewView(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.entries: list[VideoEntry] = []
+        #: tudo que foi varrido, não só a sessão — base das estatísticas de volume
+        self.all_entries: list[VideoEntry] = []
         self.videos_dir: Path = Path()
         self.trash_dir: Path = Path()
         self.maybe_dir: Path = Path()
@@ -145,6 +147,11 @@ class ReviewView(QWidget):
         self.info_label = QLabel()
         self.info_label.setStyleSheet("color: #888;")
         root.addWidget(self.info_label)
+
+        self.volume_label = QLabel()
+        self.volume_label.setWordWrap(True)
+        self.volume_label.setStyleSheet("color: #888;")
+        root.addWidget(self.volume_label)
 
         buttons = QHBoxLayout()
         self.prev_button = QPushButton("Anterior")
@@ -239,8 +246,10 @@ class ReviewView(QWidget):
         videos_dir: Path,
         trash_dir: Path,
         maybe_dir: Path,
+        all_entries: list[VideoEntry] | None = None,
     ) -> None:
         self.entries = entries
+        self.all_entries = entries if all_entries is None else all_entries
         self.videos_dir = videos_dir
         self.trash_dir = trash_dir
         self.maybe_dir = maybe_dir
@@ -258,6 +267,7 @@ class ReviewView(QWidget):
             self._update_list_item(position)
 
         self.show_current()
+        self.refresh_volume()
         self.grab_keyboard_focus()
 
     def showEvent(self, event):
@@ -305,13 +315,44 @@ class ReviewView(QWidget):
         to_maybe = sum(1 for e in self.entries if e.decision == MAYBE)
         origem = "  ·   veio do “talvez”" if entry.from_maybe else ""
         self.info_label.setText(
-            f"{entry.size_mb:,.1f} MB   ·   manter: {to_keep}   talvez: {to_maybe}   "
-            f"apagar: {to_delete}   pendentes: {pending}{origem}".replace(",", ".")
+            f"{library.format_size(entry.size_bytes)}   ·   manter: {to_keep}   "
+            f"talvez: {to_maybe}   apagar: {to_delete}   pendentes: {pending}{origem}"
         )
 
         self.list.blockSignals(True)
         self.list.setCurrentRow(self.index)
         self.list.blockSignals(False)
+
+    # ---------------------------------------------------------- estatísticas
+    def _stats(self) -> library.Stats:
+        if self.state is None:
+            return library.Stats()
+        return library.collect_stats(self.all_entries, self.state, session=self.entries)
+
+    def refresh_volume(self) -> None:
+        """Volume marcado nesta sessão e projeção do tamanho final da pasta.
+
+        Só é recalculado quando uma decisão muda: navegar entre os vídeos não
+        altera nenhum desses números.
+        """
+        stats = self._stats()
+        partes = [f"Pasta: {library.format_size(stats.total_bytes)}"]
+
+        marcado = [
+            f"{rotulo} {library.format_size(stats.session_bytes(decisao))}"
+            for decisao, rotulo in ((DELETE, "apagar"), (MAYBE, "talvez"), (KEEP, "manter"))
+            if stats.session_bytes(decisao)
+        ]
+        if marcado:
+            partes.append("marcado — " + " · ".join(marcado))
+
+        restante = stats.estimated_remaining
+        if restante is not None:
+            partes.append(
+                f"projeção: ~{library.format_size(restante)} no fim "
+                f"({stats.discard_rate:.0%} do volume decidido vai para a quarentena)"
+            )
+        self.volume_label.setText("   ·   ".join(partes))
 
     def _update_status_label(self, entry: VideoEntry) -> None:
         texto = {DELETE: "● APAGAR", KEEP: "● MANTER", MAYBE: "● TALVEZ"}.get(
@@ -343,6 +384,7 @@ class ReviewView(QWidget):
         entry.decision = decision
         self._update_status_label(entry)
         self._update_list_item(self.index)
+        self.refresh_volume()
         self.go_next(auto=True)
 
     def go_next(self, auto: bool = False) -> None:
@@ -378,13 +420,16 @@ class ReviewView(QWidget):
             )
 
     def _offer_finish(self) -> None:
-        to_delete = sum(1 for e in self.entries if e.decision == DELETE)
-        to_maybe = sum(1 for e in self.entries if e.decision == MAYBE)
+        stats = self._stats()
+        to_delete = stats.session_count(DELETE)
+        to_maybe = stats.session_count(MAYBE)
         answer = QMessageBox.question(
             self,
             "Fim da sessão",
             f"Você revisou todos os {len(self.entries)} vídeos desta sessão.\n"
-            f"{to_delete} para apagar · {to_maybe} para rever depois.\n\nAplicar agora?",
+            f"{to_delete} para apagar ({library.format_size(stats.session_bytes(DELETE))}) · "
+            f"{to_maybe} para rever depois ({library.format_size(stats.session_bytes(MAYBE))})."
+            "\n\nAplicar agora?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.Yes,
         )
@@ -421,9 +466,10 @@ class ReviewView(QWidget):
             (self.maybe_dir, "rever depois"),
             (self.videos_dir, "voltar para a pasta de vídeos"),
         ):
-            quantos = sum(1 for _, dest, _ in plano if dest == destino)
-            if quantos:
-                linhas.append(f"• {quantos} vídeo(s) — {rotulo}:\n    {destino}")
+            movidos = [entry for entry, dest, _ in plano if dest == destino]
+            if movidos:
+                volume = library.format_size(sum(e.size_bytes for e in movidos))
+                linhas.append(f"• {len(movidos)} vídeo(s) — {volume} — {rotulo}:\n    {destino}")
 
         if linhas:
             answer = QMessageBox.question(
@@ -437,16 +483,19 @@ class ReviewView(QWidget):
                 return
 
         contagem = {DELETE: 0, KEEP: 0, MAYBE: 0}
+        volume = {DELETE: 0, KEEP: 0, MAYBE: 0}
         errors: list[str] = []
         for entry, destino, motivo in plano:
+            tamanho = entry.size_bytes  # medido antes do move, que invalida o caminho
             try:
                 if destino is not None:
                     # devolução: o log fica no "talvez", de onde o vídeo saiu
                     log_dir = self.maybe_dir if motivo == KEEP else None
                     library.move_video(entry.video, destino, motivo, log_dir)
                 contagem[motivo] += 1
+                volume[motivo] += tamanho
                 if self.state is not None:
-                    self.state.record(entry.name, motivo)
+                    self.state.record(entry.name, motivo, tamanho)
             except OSError as exc:
                 # sem registro: a decisão volta a aparecer na próxima sessão
                 errors.append(f"{entry.name}: {exc}")
@@ -458,15 +507,25 @@ class ReviewView(QWidget):
             "movidos": contagem[DELETE],
             "mantidos": contagem[KEEP],
             "talvez": contagem[MAYBE],
+            "bytes_movidos": volume[DELETE],
             "erros": errors,
             "quarentena": str(self.trash_dir),
         }
 
-        message = (
-            f"<b>{contagem[DELETE]}</b> vídeo(s) movido(s) para a quarentena<br>"
-            f"<b>{contagem[MAYBE]}</b> guardado(s) para rever depois<br>"
-            f"<b>{contagem[KEEP]}</b> mantido(s) e registrado(s) como revisados"
-        )
+        def linha(quantos: int, bytes_: int, texto: str) -> str:
+            return f"<b>{quantos}</b> vídeo(s) — {library.format_size(bytes_)} — {texto}"
+
+        message = "<br>".join((
+            linha(contagem[DELETE], volume[DELETE], "movido(s) para a quarentena"),
+            linha(contagem[MAYBE], volume[MAYBE], "guardado(s) para rever depois"),
+            linha(contagem[KEEP], volume[KEEP], "mantido(s) e registrado(s) como revisados"),
+        ))
+        restante = self._stats().estimated_remaining
+        if restante is not None:
+            message += (
+                "<br><br>No ritmo atual de descarte, a pasta deve estabilizar em "
+                f"<b>{library.format_size(restante)}</b>."
+            )
         if errors:
             message += "<br><br><b>Falhas:</b><br>" + "<br>".join(errors[:10])
         QMessageBox.information(self, "Sessão concluída", message)

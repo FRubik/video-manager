@@ -194,6 +194,7 @@ class MainWindow(QMainWindow):
             videos_dir=videos_dir,
             trash_dir=trash_dir,
             maybe_dir=maybe_dir,
+            all_entries=entries,
         )
         self.stack.setCurrentWidget(self.review_view)
         self.review_view.grab_keyboard_focus()

@@ -69,7 +69,8 @@ use o Python da própria ferramenta:
     pendente de uma segunda olhada (veja abaixo).
 
 O painel de resumo mostra quantos vídeos existem, quantos têm thumbnail, quantos
-já foram revisados e quantos entram nesta sessão.
+já foram revisados e quantos entram nesta sessão. Logo abaixo vem o painel de
+**volume** — veja a seção "Quanto vai sobrar".
 
 ### 2. Tela de revisão
 
@@ -123,11 +124,40 @@ campo nenhum. Quando finalmente decidir:
   histórico: o vídeo volta a aparecer na próxima sessão, com a decisão a tomar
   de novo.
 
+### 5. Quanto vai sobrar
+
+A pergunta que o painel de volume responde: *em que tamanho esta pasta vai
+parar quando eu terminar de triar tudo?*
+
+Na tela inicial ele mostra o que a pasta ocupa hoje, o que está no *talvez*, o
+que está parado na quarentena (ainda ocupando disco até você apagar de verdade)
+e, com base no histórico:
+
+```
+1,8 TB em 2.431 vídeo(s) · 12,4 GB no “talvez” · 210,5 GB parados na quarentena
+Você descarta 43% do volume que decide (612 vídeos decididos, 890,0 GB).
+Faltam decidir 1,1 TB — nesse ritmo, devem sobrar 1,3 TB no fim do processo.
+```
+
+A conta é direta: a fração de **bytes** que você mandou para a quarentena, entre
+tudo que já decidiu, aplicada ao volume que ainda falta decidir. Não é a fração
+de *arquivos* — descartar dez clipes de 20 MB não diz o mesmo que descartar um
+arquivo de 8 GB, e o que interessa aqui é o disco.
+
+Na tela de revisão a mesma linha acompanha a sessão: quanto você já marcou para
+apagar, para o *talvez* e para manter, com a projeção reagindo a cada decisão —
+inclusive às desta sessão, antes mesmo de aplicar.
+
+A taxa só aparece depois de **5 vídeos decididos com o tamanho registrado**;
+antes disso ela seria 0% ou 100%. Como o tamanho passou a ser gravado no
+histórico só a partir desta versão, as decisões que você tomou antes não entram
+na conta — a projeção começa a valer depois das próximas sessões.
+
 ## Arquivos de estado
 
 | Arquivo | Onde | Para quê |
 |---|---|---|
-| `.video_manager_state.json` | pasta de thumbnails | histórico de decisões (alimenta o "pular já revisados"; o *talvez* fica registrado, mas não conta como revisado) |
+| `.video_manager_state.json` | pasta de thumbnails | histórico de decisões, com o tamanho de cada vídeo (alimenta o "pular já revisados" e a projeção de volume; o *talvez* fica registrado, mas não conta como revisado) |
 | `_movimentos.jsonl` | pastas de descartes e de *talvez* | log dos vídeos movidos |
 | `config.json` | `~/.config/video_manager/` | últimas pastas, opções usadas e atalhos |
 

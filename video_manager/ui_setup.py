@@ -215,6 +215,16 @@ class SetupView(QWidget):
         self.summary.setStyleSheet("padding: 8px;")
         root.addWidget(self.summary)
 
+        self.volume = QLabel()
+        self.volume.setWordWrap(True)
+        self.volume.setFrameShape(QFrame.StyledPanel)
+        self.volume.setStyleSheet("padding: 8px;")
+        self.volume.setToolTip(
+            "A projeção aplica ao volume ainda não revisado a mesma proporção "
+            "de descarte das decisões que você já tomou."
+        )
+        root.addWidget(self.volume)
+
         root.addStretch()
 
         actions = QHBoxLayout()
@@ -340,6 +350,7 @@ class SetupView(QWidget):
 
         if not has_videos_dir or not videos_dir.is_dir():
             self.summary.setText("Selecione uma pasta de vídeos válida para começar.")
+            self.volume.clear()
             self.start_button.setEnabled(False)
             return
 
@@ -377,7 +388,44 @@ class SetupView(QWidget):
                 "<i>Os vídeos sem thumbnail ficam de fora — marque “Gerar thumbnails” para incluí-los.</i>"
             )
         self.summary.setText("<br>".join(lines))
+        self._refresh_volume(entries, state)
         self.start_button.setEnabled(total > 0)
+
+    def _refresh_volume(
+        self, entries: list[library.VideoEntry], state: library.ReviewState
+    ) -> None:
+        """Painel de espaço: o que a pasta ocupa hoje e onde isso deve parar."""
+        trash_dir = self.trash_picker.path() if self.trash_picker.text() else None
+        stats = library.collect_stats(entries, state, trash_dir=trash_dir)
+        size = library.format_size
+
+        primeira = f"<b>{size(stats.total_bytes)}</b> em {stats.total_count} vídeo(s)"
+        if stats.maybe_count:
+            primeira += f" · <b>{size(stats.maybe_bytes)}</b> no “talvez”"
+        if stats.trash_count:
+            primeira += (
+                f" · <b>{size(stats.trash_bytes)}</b> parados na quarentena "
+                f"({stats.trash_count} vídeo(s), ainda ocupando disco)"
+            )
+        lines = [primeira]
+
+        rate = stats.discard_rate
+        if rate is None:
+            lines.append(
+                f"<i>A projeção do tamanho final aparece depois de "
+                f"{library.MIN_DECIDED_FOR_RATE} vídeos decididos nesta versão — "
+                "as decisões anteriores não registraram o tamanho.</i>"
+            )
+        else:
+            lines.append(
+                f"Você descarta <b>{rate:.0%}</b> do volume que decide "
+                f"({stats.decided_count} vídeos decididos, {size(stats.decided_bytes)})."
+            )
+            lines.append(
+                f"Faltam decidir {size(stats.pending_bytes)} — nesse ritmo, devem sobrar "
+                f"<b>{size(stats.estimated_remaining)}</b> no fim do processo."
+            )
+        self.volume.setText("<br>".join(lines))
 
     def _emit_start(self) -> None:
         self.start_requested.emit(self.current_config())
