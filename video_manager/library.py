@@ -327,16 +327,27 @@ def build_session(
     session_size: int,
     skip_reviewed: bool,
     require_thumb: bool = True,
+    only_maybe: bool = False,
+    shuffle: bool = False,
 ) -> list[VideoEntry]:
-    """Seleciona o que entra nesta sessão de revisão."""
+    """Seleciona o que entra nesta sessão de revisão, e em que ordem.
+
+    `only_maybe` restringe a sessão ao que ficou pendente de segunda olhada;
+    `shuffle` troca a ordem alfabética por uma aleatória.
+    """
     pool = list(entries)
+    if only_maybe:
+        pool = [e for e in pool if e.from_maybe]
     if require_thumb:
         pool = [e for e in pool if e.thumb is not None]
     if skip_reviewed:
         pool = [e for e in pool if not state.was_reviewed(e.name)]
     if random_session and session_size > 0 and len(pool) > session_size:
+        # sortear *quais* não implica desordenar: a ordem é escolha à parte
         pool = random.sample(pool, session_size)
         pool.sort(key=lambda e: e.name.lower())
+    if shuffle:
+        random.shuffle(pool)
     return pool
 
 

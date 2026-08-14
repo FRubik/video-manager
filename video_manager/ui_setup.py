@@ -6,6 +6,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
     QDoubleSpinBox,
     QFileDialog,
@@ -193,21 +194,46 @@ class SetupView(QWidget):
         random_row.addStretch()
 
         self.skip_reviewed = QCheckBox("Pular vídeos que já revisei em sessões anteriores")
-        self.include_maybe = QCheckBox("Incluir os vídeos marcados como “talvez”")
-        self.include_maybe.setToolTip(
-            "Traz de volta o que ficou na pasta “talvez”. Manter devolve o vídeo "
-            "à pasta de vídeos; apagar manda para a quarentena."
+        self.shuffle_order = QCheckBox("Mostrar em ordem randômica, e não alfabética")
+        self.shuffle_order.setToolTip(
+            "Embaralha a ordem de exibição da sessão. Útil numa pasta onde os "
+            "nomes agrupam o conteúdo — a ordem alfabética faz você ver tudo de "
+            "um tipo de uma vez."
         )
+
+        # o “talvez” é escopo, não quantidade: por isso um grupo próprio, e não
+        # mais um modo ao lado de “revisar todos” e “verificação randômica”
+        maybe_row = QHBoxLayout()
+        maybe_row.addWidget(QLabel("Vídeos do “talvez”:"))
+        self.maybe_ignore = QRadioButton("deixar de fora")
+        self.maybe_include = QRadioButton("incluir na sessão")
+        self.maybe_only = QRadioButton("somente eles")
+        self.maybe_ignore.setToolTip("A sessão ignora a pasta “talvez”.")
+        self.maybe_include.setToolTip(
+            "Traz de volta o que ficou na pasta “talvez”, junto com os demais. "
+            "Manter devolve o vídeo à pasta de vídeos; apagar manda para a quarentena."
+        )
+        self.maybe_only.setToolTip(
+            "A sessão inteira é feita das dúvidas anteriores — nenhum vídeo novo entra."
+        )
+        self.maybe_group = QButtonGroup(self)
+        for button in (self.maybe_ignore, self.maybe_include, self.maybe_only):
+            self.maybe_group.addButton(button)
+            maybe_row.addWidget(button)
+        maybe_row.addStretch()
+
         session_layout.addWidget(self.mode_all)
         session_layout.addLayout(random_row)
         session_layout.addWidget(self.skip_reviewed)
-        session_layout.addWidget(self.include_maybe)
+        session_layout.addWidget(self.shuffle_order)
+        session_layout.addLayout(maybe_row)
         root.addWidget(session)
 
         self.mode_random.toggled.connect(self.session_size.setEnabled)
         self.mode_random.toggled.connect(self.refresh_summary)
         self.skip_reviewed.toggled.connect(self.refresh_summary)
-        self.include_maybe.toggled.connect(self.refresh_summary)
+        self.shuffle_order.toggled.connect(self.refresh_summary)
+        self.maybe_group.buttonToggled.connect(self.refresh_summary)
         self.maybe_picker.changed.connect(self.refresh_summary)
 
         # --- sessão interrompida ---
@@ -293,7 +319,13 @@ class SetupView(QWidget):
         self.session_size.setValue(c.session_size)
         self.session_size.setEnabled(c.random_session)
         self.skip_reviewed.setChecked(c.skip_reviewed)
-        self.include_maybe.setChecked(c.include_maybe)
+        self.shuffle_order.setChecked(c.shuffle_order)
+        if c.only_maybe:
+            self.maybe_only.setChecked(True)
+        elif c.include_maybe:
+            self.maybe_include.setChecked(True)
+        else:
+            self.maybe_ignore.setChecked(True)
         self._previous_videos_dir = c.videos_dir
         # config de uma versão anterior não traz as pastas novas
         if c.videos_dir:
@@ -321,7 +353,9 @@ class SetupView(QWidget):
         c.random_session = self.mode_random.isChecked()
         c.session_size = self.session_size.value()
         c.skip_reviewed = self.skip_reviewed.isChecked()
-        c.include_maybe = self.include_maybe.isChecked()
+        c.shuffle_order = self.shuffle_order.isChecked()
+        c.only_maybe = self.maybe_only.isChecked()
+        c.include_maybe = self.maybe_include.isChecked()
         return c
 
     def _edit_shortcuts(self) -> None:
@@ -333,8 +367,9 @@ class SetupView(QWidget):
         self.key_bindings_changed.emit(self.config.key_bindings)
 
     def maybe_scan_dir(self) -> Path | None:
-        """Pasta “talvez” a incluir na varredura, ou None se a opção está desligada."""
-        if not self.include_maybe.isChecked() or not self.maybe_picker.text():
+        """Pasta “talvez” a incluir na varredura, ou None se ela fica de fora."""
+        varre = self.maybe_include.isChecked() or self.maybe_only.isChecked()
+        if not varre or not self.maybe_picker.text():
             return None
         return self.maybe_picker.path()
 
@@ -388,6 +423,7 @@ class SetupView(QWidget):
         state = library.ReviewState(thumbs_dir)
         reviewed = sum(1 for e in entries if state.was_reviewed(e.name))
         will_generate = self.gen_group.isChecked()
+        only_maybe = self.maybe_only.isChecked()
         pending = library.build_session(
             entries,
             state,
@@ -396,19 +432,27 @@ class SetupView(QWidget):
             skip_reviewed=self.skip_reviewed.isChecked(),
             # se as thumbs vão ser geradas agora, os vídeos sem thumb também entram
             require_thumb=not will_generate,
+            only_maybe=only_maybe,
         )
 
         session_count = len(pending)
         if self.mode_random.isChecked():
             session_count = min(session_count, self.session_size.value())
 
+        escopo = " — só do “talvez”" if only_maybe else ""
+        ordem = " em ordem randômica" if self.shuffle_order.isChecked() else ""
         lines = [
             f"<b>{total}</b> vídeos · <b>{with_thumb}</b> com thumbnail · <b>{missing}</b> sem thumbnail",
             f"<b>{reviewed}</b> já revisados em sessões anteriores"
             + (f" · <b>{from_maybe}</b> vindos do “talvez”" if from_maybe else ""),
-            f"Esta sessão vai mostrar <b>{session_count}</b> vídeo(s).",
+            f"Esta sessão vai mostrar <b>{session_count}</b> vídeo(s){escopo}{ordem}.",
         ]
-        if missing and not will_generate:
+        if only_maybe and not session_count:
+            lines.append(
+                "<i>A pasta “talvez” está vazia (ou os vídeos dela não têm thumbnail) — "
+                "não há dúvida anterior para rever.</i>"
+            )
+        elif missing and not will_generate:
             lines.append(
                 "<i>Os vídeos sem thumbnail ficam de fora — marque “Gerar thumbnails” para incluí-los.</i>"
             )

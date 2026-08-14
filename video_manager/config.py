@@ -34,9 +34,18 @@ class Config:
     session_size: int = 30
     skip_reviewed: bool = True
     include_maybe: bool = True
+    #: sessão restrita ao que ficou no "talvez" (tem precedência sobre a de cima)
+    only_maybe: bool = False
+    #: ordem de exibição aleatória em vez de alfabética
+    shuffle_order: bool = False
 
     # atalhos da tela de revisão: ação -> tecla
     key_bindings: dict = field(default_factory=lambda: dict(shortcuts.DEFAULTS))
+
+    @property
+    def scans_maybe(self) -> bool:
+        """A pasta “talvez” precisa entrar na varredura?"""
+        return self.include_maybe or self.only_maybe
 
     @classmethod
     def load(cls) -> "Config":
