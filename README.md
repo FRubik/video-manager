@@ -68,6 +68,10 @@ use o Python da própria ferramenta:
   - *Incluir os vídeos marcados como "talvez"* — traz de volta o que ficou
     pendente de uma segunda olhada (veja abaixo).
 
+Quando existe uma **sessão interrompida** guardada para essas pastas, um painel
+alaranjado aparece acima do resumo, com **Retomar** e **Descartar** — veja
+"Parar no meio e continuar depois".
+
 O painel de resumo mostra quantos vídeos existem, quantos têm thumbnail, quantos
 já foram revisados e quantos entram nesta sessão. Logo abaixo vem o painel de
 **volume** — veja a seção "Quanto vai sobrar".
@@ -94,7 +98,8 @@ fica salva no `config.json`. As alternativas da tabela (`←`, `→`, `Espaço`,
 `Del`) continuam valendo, e `Enter` não é remapeável.
 
 Nada é movido enquanto você decide — as marcações só são aplicadas em **Aplicar e
-finalizar** (ou no fim da sessão, que pergunta), sempre com confirmação.
+finalizar** (ou no fim da sessão, que pergunta), sempre com confirmação. Ao lado
+dele, **Salvar e sair** guarda a sessão para outro dia sem mover nada.
 
 ### 3. O "talvez"
 
@@ -153,11 +158,48 @@ antes disso ela seria 0% ou 100%. Como o tamanho passou a ser gravado no
 histórico só a partir desta versão, as decisões que você tomou antes não entram
 na conta — a projeção começa a valer depois das próximas sessões.
 
+### 6. Parar no meio e continuar depois
+
+Uma pasta com milhares de vídeos não cabe numa sentada, e a interrupção não
+avisa. Há duas formas de largar a sessão pela metade, para dois problemas
+diferentes.
+
+**Aplicar e continuar outro dia.** Aperte `Enter`, aplique, e pronto: os vídeos
+decididos entram no histórico e *Pular vídeos que já revisei* os deixa de fora
+das próximas sessões. Pode re-randomizar à vontade — o que você já viu não
+volta. Fechar a janela com decisões pendentes oferece **Aplicar e sair**, que
+faz exatamente isso sem exigir que você lembre do `Enter`.
+
+**Guardar a sessão inteira.** É o que a *verificação randômica* pede: aplicar no
+meio encerra aquele sorteio, e os vídeos que você ainda não viu voltam para o
+bolo — talvez nunca mais caindo juntos. **Salvar e sair** congela a sessão como
+ela está: a lista sorteada, as marcações que você já fez e a posição em que
+parou. Na próxima abertura, **Retomar** devolve tudo, inclusive as cores na
+lista lateral, e você segue do vídeo seguinte ao último decidido.
+
+Não é preciso lembrar de salvar: **cada decisão grava a sessão em disco**. Se o
+programa morrer, a máquina desligar ou você fechar a janela no susto, a sessão
+está lá na volta. O arquivo é pequeno e some sozinho quando você aplica.
+
+Entre salvar e retomar o mundo pode ter mudado, e a retomada lida com isso:
+
+- vídeo apagado ou movido para fora das pastas → sai da sessão, com aviso de
+  quantos ficaram de fora, e a posição salva acompanha o encurtamento;
+- vídeo que trocou de pasta (do *talvez* para os vídeos, por exemplo) →
+  reencontrado pelo nome, com a origem corrigida;
+- **iniciar uma sessão nova** com uma salva pendente → o programa pergunta
+  antes, porque isso descarta as marcações guardadas.
+
+Só há uma sessão salva por pasta de thumbnails, e ela é oferecida apenas quando
+a pasta de vídeos é a mesma de quando foi salva. Sair sem ter decidido nada não
+salva nada — não há o que preservar numa sessão em que você só navegou.
+
 ## Arquivos de estado
 
 | Arquivo | Onde | Para quê |
 |---|---|---|
 | `.video_manager_state.json` | pasta de thumbnails | histórico de decisões, com o tamanho de cada vídeo (alimenta o "pular já revisados" e a projeção de volume; o *talvez* fica registrado, mas não conta como revisado) |
+| `.video_manager_session.json` | pasta de thumbnails | sessão interrompida: lista, marcações não aplicadas e posição (some ao aplicar) |
 | `_movimentos.jsonl` | pastas de descartes e de *talvez* | log dos vídeos movidos |
 | `config.json` | `~/.config/video_manager/` | últimas pastas, opções usadas e atalhos |
 
@@ -188,7 +230,7 @@ qualquer código novo que lance um programa externo esbarra nelas de novo:
 ```
 video_manager/
 ├── config.py      preferências persistidas
-├── library.py     varredura, pareamento vídeo↔thumb, sessão, quarentena
+├── library.py     varredura, pareamento vídeo↔thumb, sessão salva, quarentena
 ├── thumbs.py      extração dos frames e montagem da grade (motor do notebook)
 ├── worker.py      geração em thread separada
 ├── ui_setup.py    tela inicial

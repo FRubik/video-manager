@@ -39,8 +39,10 @@ class MainWindow(QMainWindow):
         self.review_view.apply_key_bindings(self.config.key_bindings)
 
         self.setup_view.start_requested.connect(self.on_start)
+        self.setup_view.resume_requested.connect(self.on_resume)
         self.setup_view.key_bindings_changed.connect(self.review_view.apply_key_bindings)
         self.review_view.session_finished.connect(self.on_session_finished)
+        self.review_view.session_saved.connect(self.on_session_saved)
 
         self._worker: ThumbWorker | None = None
         self._progress: QProgressDialog | None = None
@@ -78,6 +80,10 @@ class MainWindow(QMainWindow):
                 "Pastas iguais",
                 "As pastas de descartes e de “talvez” precisam ser diferentes.",
             )
+            return
+
+        # antes de gerar qualquer coisa: uma sessão nova apaga a que está guardada
+        if not self._confirm_overwrite(thumbs_dir):
             return
 
         config.save()
@@ -192,9 +198,88 @@ class MainWindow(QMainWindow):
             session,
             state,
             videos_dir=videos_dir,
+            thumbs_dir=thumbs_dir,
             trash_dir=trash_dir,
             maybe_dir=maybe_dir,
             all_entries=entries,
+        )
+        self.stack.setCurrentWidget(self.review_view)
+        self.review_view.grab_keyboard_focus()
+
+    def _confirm_overwrite(self, thumbs_dir: Path) -> bool:
+        """Pergunta antes de deixar uma sessão nova apagar a que está guardada.
+
+        True quando não há sessão salva ou o usuário aceitou perdê-la — e nesse
+        caso o arquivo já vai embora, para a tela inicial não continuar
+        oferecendo uma retomada que a sessão nova sobrescreveria.
+        """
+        salva = library.load_session(thumbs_dir)
+        if salva is None:
+            return True
+        answer = QMessageBox.question(
+            self,
+            "Há uma sessão salva",
+            f"Existe uma sessão de {salva.saved_at_label} com {salva.total} vídeo(s) "
+            f"e {salva.decided} decisão(ões) ainda não aplicada(s).\n\n"
+            "Começar uma sessão nova descarta essas marcações. "
+            "Para continuar de onde parou, volte e use “Retomar”.",
+            QMessageBox.Discard | QMessageBox.Cancel,
+            QMessageBox.Cancel,
+        )
+        if answer != QMessageBox.Discard:
+            return False
+        library.clear_session(thumbs_dir)
+        return True
+
+    # ------------------------------------------------------------- retomada
+    def on_resume(self, config: Config) -> None:
+        """Recarrega a sessão guardada em disco, casando-a com a pasta atual."""
+        thumbs_dir = Path(config.thumbs_dir).expanduser()
+        salva = library.load_session(thumbs_dir)
+        if salva is None:
+            QMessageBox.information(
+                self, "Sem sessão salva", "Não há sessão guardada para esta pasta de thumbnails."
+            )
+            self.setup_view.refresh_summary()
+            return
+
+        videos_dir = Path(salva.videos_dir or config.videos_dir).expanduser()
+        trash_dir = Path(salva.trash_dir or config.trash_dir).expanduser()
+        maybe_dir = Path(salva.maybe_dir or config.maybe_dir).expanduser()
+
+        # a varredura inclui o "talvez" independente da opção atual: a sessão
+        # salva pode conter vídeos de lá, e eles precisam ser reencontrados
+        entries = library.scan(videos_dir, thumbs_dir, maybe_dir)
+        session, index, missing = library.restore_session(salva, entries)
+
+        if not session:
+            QMessageBox.warning(
+                self,
+                "Sessão vazia",
+                "Nenhum vídeo da sessão salva ainda está nas pastas. A sessão foi descartada.",
+            )
+            library.clear_session(thumbs_dir)
+            self.setup_view.refresh_summary()
+            return
+
+        if missing:
+            QMessageBox.information(
+                self,
+                "Sessão retomada parcialmente",
+                f"{missing} vídeo(s) da sessão não estão mais nas pastas e ficaram de fora.\n"
+                f"Retomando com os {len(session)} restantes.",
+            )
+
+        self.review_view.load_session(
+            session,
+            ReviewState(thumbs_dir),
+            videos_dir=videos_dir,
+            thumbs_dir=thumbs_dir,
+            trash_dir=trash_dir,
+            maybe_dir=maybe_dir,
+            all_entries=entries,
+            start_index=index,
+            resumed=True,
         )
         self.stack.setCurrentWidget(self.review_view)
         self.review_view.grab_keyboard_focus()
@@ -203,19 +288,47 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.setup_view)
         self.setup_view.refresh_summary()
 
+    def on_session_saved(self) -> None:
+        self.stack.setCurrentWidget(self.setup_view)
+        self.setup_view.refresh_summary()
+
     # --------------------------------------------------------------- saída
     def closeEvent(self, event):
         if self.stack.currentWidget() is self.review_view and self.review_view.has_pending_changes():
-            answer = QMessageBox.question(
-                self,
-                "Sair sem aplicar?",
-                "Há decisões desta sessão que ainda não foram aplicadas.\n"
-                "Sair agora descarta essas marcações.",
-                QMessageBox.Discard | QMessageBox.Cancel,
-                QMessageBox.Cancel,
-            )
-            if answer != QMessageBox.Discard:
+            if not self._resolve_pending_on_exit():
                 event.ignore()
                 return
         self.setup_view.current_config().save()
         event.accept()
+
+    def _resolve_pending_on_exit(self) -> bool:
+        """Decisões não aplicadas na hora de fechar. True se pode sair."""
+        box = QMessageBox(self)
+        box.setWindowTitle("Sair da revisão")
+        box.setIcon(QMessageBox.Question)
+        box.setText("Há decisões desta sessão que ainda não foram aplicadas.")
+        box.setInformativeText(
+            "<b>Salvar</b> guarda a sessão como está — dá para retomar na tela inicial.<br>"
+            "<b>Aplicar</b> move os vídeos agora e encerra a sessão.<br>"
+            "<b>Descartar</b> perde as marcações."
+        )
+        salvar = box.addButton("Salvar sessão e sair", QMessageBox.AcceptRole)
+        aplicar = box.addButton("Aplicar e sair", QMessageBox.ApplyRole)
+        box.addButton("Descartar", QMessageBox.DestructiveRole)
+        box.addButton("Cancelar", QMessageBox.RejectRole)
+        box.setDefaultButton(salvar)
+        box.exec()
+
+        clicado = box.clickedButton()
+        if clicado is salvar:
+            self.review_view.autosave()
+            return True
+        if clicado is aplicar:
+            self.review_view.finish()
+            # a confirmação das movimentações pode ter sido cancelada lá dentro
+            return self.review_view.applied
+        if clicado is not None and box.buttonRole(clicado) == QMessageBox.DestructiveRole:
+            # descartar é descartar: o autosave desta sessão também vai embora
+            self.review_view.discard_saved_session()
+            return True
+        return False

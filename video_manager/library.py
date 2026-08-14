@@ -19,6 +19,7 @@ VIDEO_EXTS = {
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 
 STATE_FILE = ".video_manager_state.json"
+SESSION_FILE = ".video_manager_session.json"
 TRASH_LOG = "_movimentos.jsonl"
 
 KEEP = "keep"
@@ -176,6 +177,146 @@ class ReviewState:
             )
         except OSError:
             pass
+
+
+@dataclass
+class SavedSession:
+    """Uma sessão interrompida, guardada para ser retomada depois.
+
+    Existe para o que o histórico não cobre: decisões que ainda não foram
+    aplicadas e, sobretudo, a amostra de uma verificação randômica — aplicar
+    no meio encerra aquele sorteio e devolve o resto ao bolo.
+    """
+
+    saved_at: str = ""
+    videos_dir: str = ""
+    trash_dir: str = ""
+    maybe_dir: str = ""
+    index: int = 0
+    #: um por vídeo da sessão: {"name", "from_maybe", "decision"}
+    items: list[dict] = field(default_factory=list)
+
+    @property
+    def total(self) -> int:
+        return len(self.items)
+
+    @property
+    def decided(self) -> int:
+        return sum(1 for item in self.items if item.get("decision"))
+
+    @property
+    def saved_at_label(self) -> str:
+        """Data legível, ou o texto cru se não for uma data ISO."""
+        try:
+            return datetime.fromisoformat(self.saved_at).strftime("%d/%m às %H:%M")
+        except ValueError:
+            return self.saved_at
+
+
+def session_path(thumbs_dir: Path) -> Path:
+    return thumbs_dir / SESSION_FILE
+
+
+def save_session(
+    thumbs_dir: Path,
+    entries: list[VideoEntry],
+    index: int,
+    *,
+    videos_dir: Path,
+    trash_dir: Path,
+    maybe_dir: Path,
+) -> None:
+    """Grava a sessão em andamento ao lado do histórico.
+
+    Só o nome de cada vídeo é guardado — o caminho é reencontrado na varredura
+    da retomada, que é a mesma chave que o histórico já usa.
+    """
+    payload = {
+        "saved_at": datetime.now().isoformat(timespec="seconds"),
+        "videos_dir": str(videos_dir),
+        "trash_dir": str(trash_dir),
+        "maybe_dir": str(maybe_dir),
+        "index": index,
+        "items": [
+            {"name": e.name, "from_maybe": e.from_maybe, "decision": e.decision}
+            for e in entries
+        ],
+    }
+    try:
+        thumbs_dir.mkdir(parents=True, exist_ok=True)
+        session_path(thumbs_dir).write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+    except OSError:
+        pass  # não vale interromper a revisão por causa do autosave
+
+
+def load_session(thumbs_dir: Path) -> SavedSession | None:
+    """Sessão salva nessa pasta de thumbnails, ou None se não houver uma válida."""
+    try:
+        raw = json.loads(session_path(thumbs_dir).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(raw, dict) or not isinstance(raw.get("items"), list):
+        return None
+    decisoes = (KEEP, DELETE, MAYBE)
+    items = [
+        {
+            "name": item["name"],
+            "from_maybe": bool(item.get("from_maybe")),
+            "decision": item["decision"] if item.get("decision") in decisoes else None,
+        }
+        for item in raw["items"]
+        if isinstance(item, dict) and isinstance(item.get("name"), str)
+    ]
+    if not items:
+        return None
+    index = raw.get("index")
+    return SavedSession(
+        saved_at=str(raw.get("saved_at", "")),
+        videos_dir=str(raw.get("videos_dir", "")),
+        trash_dir=str(raw.get("trash_dir", "")),
+        maybe_dir=str(raw.get("maybe_dir", "")),
+        index=index if isinstance(index, int) and 0 <= index < len(items) else 0,
+        items=items,
+    )
+
+
+def clear_session(thumbs_dir: Path) -> None:
+    try:
+        session_path(thumbs_dir).unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
+def restore_session(
+    saved: SavedSession, entries: list[VideoEntry]
+) -> tuple[list[VideoEntry], int, int]:
+    """Casa a sessão salva com a varredura atual.
+
+    Retorna (vídeos da sessão, índice onde retomar, quantos sumiram da pasta).
+    Um vídeo que mudou de pasta (do "talvez" para os vídeos, por exemplo) ainda
+    é reconhecido pelo nome; um que não está mais em lugar nenhum sai da sessão,
+    e o índice acompanha esse encurtamento.
+    """
+    por_chave = {(e.name, e.from_maybe): e for e in entries}
+    por_nome: dict[str, VideoEntry] = {}
+    for entry in entries:
+        por_nome.setdefault(entry.name, entry)
+
+    session: list[VideoEntry] = []
+    index = 0
+    missing = 0
+    for position, item in enumerate(saved.items):
+        entry = por_chave.get((item["name"], item["from_maybe"])) or por_nome.get(item["name"])
+        if entry is None:
+            missing += 1
+            continue
+        entry.decision = item["decision"]
+        if position < saved.index:
+            index += 1
+        session.append(entry)
+    return session, min(index, max(len(session) - 1, 0)), missing
 
 
 def build_session(
