@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QRadioButton,
     QSpinBox,
@@ -77,6 +78,7 @@ class FolderPicker(QWidget):
 
 class SetupView(QWidget):
     start_requested = Signal(Config)
+    resume_requested = Signal(Config)
     key_bindings_changed = Signal(dict)
 
     def __init__(self, config: Config, parent=None):
@@ -207,6 +209,28 @@ class SetupView(QWidget):
         self.skip_reviewed.toggled.connect(self.refresh_summary)
         self.include_maybe.toggled.connect(self.refresh_summary)
         self.maybe_picker.changed.connect(self.refresh_summary)
+
+        # --- sessão interrompida ---
+        self.resume_box = QFrame()
+        self.resume_box.setFrameShape(QFrame.StyledPanel)
+        self.resume_box.setStyleSheet(
+            "QFrame { border: 1px solid #ef6c00; border-radius: 4px; padding: 8px; }"
+        )
+        resume_layout = QHBoxLayout(self.resume_box)
+        self.resume_label = QLabel()
+        self.resume_label.setWordWrap(True)
+        self.resume_label.setStyleSheet("border: none;")
+        resume_button = QPushButton("Retomar")
+        resume_button.setToolTip("Continuar a sessão salva de onde ela parou")
+        resume_button.clicked.connect(self._emit_resume)
+        discard_button = QPushButton("Descartar")
+        discard_button.setToolTip("Esquecer a sessão salva e liberar esses vídeos para novas sessões")
+        discard_button.clicked.connect(self._discard_saved_session)
+        resume_layout.addWidget(self.resume_label, stretch=1)
+        resume_layout.addWidget(resume_button)
+        resume_layout.addWidget(discard_button)
+        self.resume_box.hide()
+        root.addWidget(self.resume_box)
 
         # --- resumo + ação ---
         self.summary = QLabel()
@@ -347,6 +371,7 @@ class SetupView(QWidget):
         has_videos_dir = bool(self.videos_picker.text())
         self.trash_default_button.setEnabled(has_videos_dir)
         self.maybe_default_button.setEnabled(has_videos_dir)
+        self._refresh_saved_session()
 
         if not has_videos_dir or not videos_dir.is_dir():
             self.summary.setText("Selecione uma pasta de vídeos válida para começar.")
@@ -426,6 +451,46 @@ class SetupView(QWidget):
                 f"<b>{size(stats.estimated_remaining)}</b> no fim do processo."
             )
         self.volume.setText("<br>".join(lines))
+
+    # ------------------------------------------------------- sessão salva
+    def _refresh_saved_session(self) -> None:
+        """Mostra o convite a retomar quando há sessão guardada para estas pastas."""
+        thumbs_dir = self.thumbs_picker.path()
+        salva = library.load_session(thumbs_dir) if self.thumbs_picker.text() else None
+        # uma sessão de outra pasta de vídeos não faz sentido aqui, mesmo
+        # compartilhando as thumbnails
+        if salva is not None and salva.videos_dir:
+            atual = self.videos_picker.path()
+            if Path(salva.videos_dir).expanduser() != atual:
+                salva = None
+
+        if salva is None:
+            self.resume_box.hide()
+            return
+
+        posicao = min(salva.index + 1, salva.total)
+        self.resume_label.setText(
+            f"<b>Sessão interrompida</b> em {salva.saved_at_label} — {salva.total} vídeo(s), "
+            f"{salva.decided} decidido(s), parou no #{posicao}.<br>"
+            "<i>Nada foi movido: as decisões são aplicadas quando você finalizar.</i>"
+        )
+        self.resume_box.show()
+
+    def _emit_resume(self) -> None:
+        self.resume_requested.emit(self.current_config())
+
+    def _discard_saved_session(self) -> None:
+        answer = QMessageBox.question(
+            self,
+            "Descartar sessão salva",
+            "As decisões guardadas nessa sessão são perdidas e os vídeos voltam "
+            "a entrar em sessões novas.\n\nNenhum arquivo é movido ou apagado.",
+            QMessageBox.Discard | QMessageBox.Cancel,
+            QMessageBox.Cancel,
+        )
+        if answer == QMessageBox.Discard:
+            library.clear_session(self.thumbs_picker.path())
+            self.refresh_summary()
 
     def _emit_start(self) -> None:
         self.start_requested.emit(self.current_config())

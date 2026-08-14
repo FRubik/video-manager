@@ -93,6 +93,7 @@ class ImageViewer(QScrollArea):
 
 class ReviewView(QWidget):
     session_finished = Signal(dict)
+    session_saved = Signal()
     back_requested = Signal()
 
     def __init__(self, parent=None):
@@ -101,10 +102,13 @@ class ReviewView(QWidget):
         #: tudo que foi varrido, não só a sessão — base das estatísticas de volume
         self.all_entries: list[VideoEntry] = []
         self.videos_dir: Path = Path()
+        self.thumbs_dir: Path = Path()
         self.trash_dir: Path = Path()
         self.maybe_dir: Path = Path()
         self.state: ReviewState | None = None
         self.index = 0
+        #: depois de aplicar, o autosave não pode ressuscitar o arquivo apagado
+        self._applied = False
         # a view precisa poder receber foco para que os atalhos (contexto
         # WidgetWithChildren) cheguem até ela
         self.setFocusPolicy(Qt.StrongFocus)
@@ -160,6 +164,11 @@ class ReviewView(QWidget):
         self.maybe_button = QPushButton("Talvez")
         self.delete_button = QPushButton("Apagar")
         self.open_button = QPushButton("Abrir vídeo")
+        self.save_button = QPushButton("Salvar e sair")
+        self.save_button.setToolTip(
+            "Guarda esta sessão como está — decisões e posição — para retomar depois.\n"
+            "Nada é movido agora."
+        )
         self.finish_button = QPushButton("Aplicar e finalizar")
 
         self.keep_button.setStyleSheet(f"font-weight: 600; color: {COLOR_KEEP};")
@@ -172,6 +181,7 @@ class ReviewView(QWidget):
         self.maybe_button.clicked.connect(lambda: self.decide(MAYBE))
         self.delete_button.clicked.connect(lambda: self.decide(DELETE))
         self.open_button.clicked.connect(self.open_current_video)
+        self.save_button.clicked.connect(self.save_and_exit)
         self.finish_button.clicked.connect(self.finish)
 
         buttons.addWidget(self.prev_button)
@@ -183,6 +193,7 @@ class ReviewView(QWidget):
         buttons.addSpacing(20)
         buttons.addWidget(self.open_button)
         buttons.addStretch()
+        buttons.addWidget(self.save_button)
         buttons.addWidget(self.finish_button)
         root.addLayout(buttons)
 
@@ -244,19 +255,26 @@ class ReviewView(QWidget):
         state: ReviewState,
         *,
         videos_dir: Path,
+        thumbs_dir: Path,
         trash_dir: Path,
         maybe_dir: Path,
         all_entries: list[VideoEntry] | None = None,
+        start_index: int = 0,
+        resumed: bool = False,
     ) -> None:
+        """Carrega a sessão. `resumed` preserva as decisões vindas do disco."""
         self.entries = entries
         self.all_entries = entries if all_entries is None else all_entries
         self.videos_dir = videos_dir
+        self.thumbs_dir = thumbs_dir
         self.trash_dir = trash_dir
         self.maybe_dir = maybe_dir
         self.state = state
-        self.index = 0
-        for entry in self.entries:
-            entry.decision = None
+        self.index = start_index if 0 <= start_index < len(entries) else 0
+        self._applied = False
+        if not resumed:
+            for entry in self.entries:
+                entry.decision = None
 
         self.list.blockSignals(True)
         self.list.clear()
@@ -385,6 +403,10 @@ class ReviewView(QWidget):
         self._update_status_label(entry)
         self._update_list_item(self.index)
         self.refresh_volume()
+        # antes de avançar: no último vídeo, `go_next` abre o diálogo de fim de
+        # sessão, que pode aplicar tudo e apagar o arquivo que acabamos de gravar.
+        # A posição salva é a seguinte — retomar deve cair no próximo pendente.
+        self.autosave(self.index + 1)
         self.go_next(auto=True)
 
     def go_next(self, auto: bool = False) -> None:
@@ -436,6 +458,48 @@ class ReviewView(QWidget):
         if answer == QMessageBox.Yes:
             self.finish()
 
+    # ------------------------------------------------------- sessão salva
+    @property
+    def applied(self) -> bool:
+        """A sessão já foi aplicada ou encerrada — não há mais o que guardar."""
+        return self._applied
+
+    def autosave(self, index: int | None = None) -> None:
+        """Grava a sessão no disco depois de cada decisão.
+
+        É o que cobre a interrupção que não avisa — incluindo o app morrer sem
+        chance de perguntar nada. O arquivo é pequeno e some ao aplicar.
+        """
+        if self._applied or not self.entries or self.state is None:
+            return
+        posicao = self.index if index is None else index
+        library.save_session(
+            self.thumbs_dir,
+            self.entries,
+            max(0, min(posicao, len(self.entries) - 1)),
+            videos_dir=self.videos_dir,
+            trash_dir=self.trash_dir,
+            maybe_dir=self.maybe_dir,
+        )
+
+    def discard_saved_session(self) -> None:
+        """Apaga o arquivo e trava o autosave — a sessão acabou."""
+        self._applied = True
+        library.clear_session(self.thumbs_dir)
+
+    def save_and_exit(self) -> None:
+        """Guarda a sessão como está e volta para a tela inicial."""
+        self.autosave()
+        decididos = sum(1 for e in self.entries if e.decision is not None)
+        QMessageBox.information(
+            self,
+            "Sessão salva",
+            f"{len(self.entries)} vídeo(s) guardados, {decididos} já decidido(s).<br><br>"
+            "Nada foi movido. A tela inicial oferece <b>Retomar</b> enquanto esta "
+            "sessão existir.",
+        )
+        self.session_saved.emit()
+
     # -------------------------------------------------------------- aplicar
     def has_pending_changes(self) -> bool:
         return any(e.decision is not None for e in self.entries)
@@ -457,6 +521,7 @@ class ReviewView(QWidget):
     def finish(self) -> None:
         plano = self._planned_moves()
         if not plano:
+            self.discard_saved_session()
             self.session_finished.emit({"movidos": 0, "mantidos": 0, "talvez": 0, "erros": []})
             return
 
@@ -502,6 +567,9 @@ class ReviewView(QWidget):
 
         if self.state is not None:
             self.state.save()
+        # o que falhou não entrou no histórico e volta na próxima sessão; a
+        # sessão salva, essa, já cumpriu o papel dela
+        self.discard_saved_session()
 
         summary = {
             "movidos": contagem[DELETE],
