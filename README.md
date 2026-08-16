@@ -1,3 +1,5 @@
+<img src="video_manager/icons/hicolor/128x128/apps/video-manager.png" width="96" align="right" alt="">
+
 # Video Manager
 
 *[Leia em português](README.pt-BR.md)*
@@ -40,6 +42,23 @@ only need `uv tool upgrade video-manager` when the project's **dependencies**
 change.
 
 To uninstall: `uv tool uninstall video-manager`.
+
+### Menu entry and icon (Linux)
+
+The app carries its own icon, but the desktop only knows about it once the
+launcher is installed:
+
+```bash
+./packaging/install-desktop-entry.sh
+```
+
+That copies the icons into `~/.local/share/icons/hicolor` and the launcher into
+`~/.local/share/applications` — no root needed. `--uninstall` removes the same
+files.
+
+It matters on Wayland: there the taskbar icon comes from the `.desktop` file,
+matched to the window by app id, so without this step the window keeps the
+compositor's generic icon no matter what the app sets.
 
 ## Running without installing
 
@@ -281,6 +300,8 @@ that launches an external program runs into them again:
 video_manager/
 ├── config.py      persisted preferences
 ├── i18n.py        interface strings in English and Portuguese
+├── icons.py       loads the app icon
+├── icons/         the icon itself (hicolor sizes + SVG)
 ├── library.py     scanning, video↔thumb pairing, saved session, quarantine
 ├── shortcuts.py   review actions and the keys that trigger them
 ├── thumbs.py      frame extraction and grid assembly (the notebook's engine)

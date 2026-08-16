@@ -1,3 +1,5 @@
+<img src="video_manager/icons/hicolor/128x128/apps/video-manager.png" width="96" align="right" alt="">
+
 # Gerenciador de Vídeos
 
 *[Read in English](README.md)*
@@ -39,6 +41,23 @@ editar um arquivo já vale na próxima execução, sem reinstalar. Só é precis
 rodar `uv tool upgrade video-manager` se as **dependências** do projeto mudarem.
 
 Para desinstalar: `uv tool uninstall video-manager`.
+
+### Ícone e entrada no menu (Linux)
+
+O programa traz o próprio ícone, mas o ambiente gráfico só fica sabendo dele
+depois que o lançador é instalado:
+
+```bash
+./packaging/install-desktop-entry.sh
+```
+
+Isso copia os ícones para `~/.local/share/icons/hicolor` e o lançador para
+`~/.local/share/applications` — sem precisar de root. O `--uninstall` remove os
+mesmos arquivos.
+
+No Wayland isso não é opcional: lá o ícone da barra de tarefas vem do arquivo
+`.desktop`, casado com a janela pelo app id — sem esse passo a janela fica com o
+ícone genérico do compositor, não importa o que o programa defina.
 
 ## Executar sem instalar
 
@@ -273,6 +292,8 @@ qualquer código novo que lance um programa externo esbarra nelas de novo:
 video_manager/
 ├── config.py      preferências persistidas
 ├── i18n.py        textos da interface em português e inglês
+├── icons.py       carrega o ícone da aplicação
+├── icons/         o ícone em si (tamanhos hicolor + SVG)
 ├── library.py     varredura, pareamento vídeo↔thumb, sessão salva, quarentena
 ├── shortcuts.py   ações da revisão e as teclas que as disparam
 ├── thumbs.py      extração dos frames e montagem da grade (motor do notebook)

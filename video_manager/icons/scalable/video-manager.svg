@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Video Manager"><title>Video Manager</title><defs>
+<linearGradient id="pg" x1="0" y1="0" x2=".55" y2="1"><stop offset="0" stop-color="#2b2e3e"></stop><stop offset="1" stop-color="#141623"></stop></linearGradient>
+<linearGradient id="pc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#474b5e"></stop><stop offset="1" stop-color="#33364a"></stop></linearGradient>
+<linearGradient id="pa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4176"></stop><stop offset="1" stop-color="#2c2843"></stop></linearGradient>
+</defs>
+<rect width="512" height="512" rx="112" fill="url(#pg)"></rect>
+<rect x="118" y="268" width="210" height="118" rx="14" fill="#20222e" stroke="#4d5162" stroke-opacity=".5" stroke-width="2"></rect>
+<rect x="100" y="294" width="210" height="118" rx="14" fill="#2b2e3b" stroke="#5a5e73" stroke-opacity=".45" stroke-width="2"></rect>
+<rect x="82" y="320" width="210" height="118" rx="14" fill="url(#pc)" stroke="#666a80" stroke-opacity=".5" stroke-width="2"></rect>
+<g transform="rotate(-10 334 172)">
+<rect x="236" y="117" width="196" height="110" rx="16" fill="none" stroke="#9184d9" stroke-opacity=".18" stroke-width="24"></rect>
+<rect x="236" y="117" width="196" height="110" rx="16" fill="url(#pa)" stroke="#9184d9" stroke-width="8"></rect>
+</g>
+<rect x="1.5" y="1.5" width="509" height="509" rx="110.5" fill="none" stroke="#6b6f85" stroke-opacity=".45" stroke-width="3"></rect>
+</svg>
