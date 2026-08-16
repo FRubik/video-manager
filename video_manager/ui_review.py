@@ -62,10 +62,6 @@ class ImageViewer(QScrollArea):
         self._fit = not self._fit
         self._render()
 
-    @property
-    def zoomed(self) -> bool:
-        return not self._fit
-
     def _render(self) -> None:
         if self._pixmap is None:
             self.setWidgetResizable(True)
@@ -95,7 +91,6 @@ class ImageViewer(QScrollArea):
 class ReviewView(QWidget):
     session_finished = Signal(dict)
     session_saved = Signal()
-    back_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)

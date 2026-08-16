@@ -65,10 +65,6 @@ class VideoEntry:
                 self._size = 0
         return self._size
 
-    @property
-    def size_mb(self) -> float:
-        return self.size_bytes / (1024 * 1024)
-
 
 def format_size(num_bytes: float) -> str:
     """Tamanho legível, com os separadores do idioma corrente."""
@@ -170,9 +166,6 @@ class ReviewState:
             # não há mais como medir o que saiu da pasta
             "size": size_bytes,
         }
-
-    def forget(self, name: str) -> None:
-        self.reviewed.pop(name, None)
 
     def save(self) -> None:
         try:

@@ -94,7 +94,6 @@ STRINGS: dict[str, dict[str, str]] = {
     "common.cancel": {"pt": "Cancelar", "en": "Cancel"},
     "common.discard": {"pt": "Descartar", "en": "Discard"},
     "common.default": {"pt": "Padrão", "en": "Default"},
-    "common.videos_count": {"pt": "{n} vídeo(s)", "en": "{n} video(s)"},
     # só campos numéricos: `%b`/`%A` sairiam no idioma do locale do sistema,
     # que não tem relação com o idioma escolhido aqui
     "format.datetime": {"pt": "%d/%m às %H:%M", "en": "%m/%d at %H:%M"},
