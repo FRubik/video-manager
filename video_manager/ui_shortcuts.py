@@ -14,19 +14,20 @@ from PySide6.QtWidgets import (
 )
 
 from . import shortcuts
+from .i18n import tr
 from .shortcuts import ACTIONS
 
 
 class ShortcutsDialog(QDialog):
     def __init__(self, key_bindings: dict, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Atalhos da revisão")
+        self.setWindowTitle(tr("shortcuts.title"))
         self._edits: dict[str, QKeySequenceEdit] = {}
 
         current = shortcuts.normalize(key_bindings)
 
         root = QVBoxLayout(self)
-        intro = QLabel("Clique num campo e pressione a tecla que quer usar.")
+        intro = QLabel(tr("shortcuts.intro"))
         intro.setStyleSheet("color: #888;")
         root.addWidget(intro)
 
@@ -42,10 +43,7 @@ class ShortcutsDialog(QDialog):
             form.addRow(label + ":", edit)
         root.addLayout(form)
 
-        note = QLabel(
-            "As teclas entre parênteses continuam valendo como alternativa. "
-            "Enter aplica a sessão e não pode ser remapeado."
-        )
+        note = QLabel(tr("shortcuts.note"))
         note.setWordWrap(True)
         note.setStyleSheet("color: #888; font-size: 11px;")
         root.addWidget(note)
@@ -72,18 +70,18 @@ class ShortcutsDialog(QDialog):
         if vazias:
             QMessageBox.warning(
                 self,
-                "Atalho em branco",
-                "Defina uma tecla para: " + ", ".join(vazias),
+                tr("shortcuts.empty.title"),
+                tr("shortcuts.empty.body", actions=", ".join(vazias)),
             )
             return
 
         repetidas = shortcuts.conflicts(chosen)
         if repetidas:
-            detalhe = "\n".join(f"• {seq}: {' e '.join(labels)}" for seq, labels in repetidas)
+            detalhe = "\n".join(f"• {seq}: {' / '.join(labels)}" for seq, labels in repetidas)
             QMessageBox.warning(
                 self,
-                "Tecla repetida",
-                f"A mesma tecla está em duas ações:\n\n{detalhe}",
+                tr("shortcuts.clash.title"),
+                tr("shortcuts.clash.body", detail=detalhe),
             )
             return
 

@@ -1,253 +1,329 @@
-# Gerenciador de Vídeos
+<img src="video_manager/icons/hicolor/128x128/apps/video-manager.png" width="96" align="right" alt="">
 
-Interface gráfica (PySide6) para gerar *contact sheets* de uma pasta de vídeos e
-triar, com o teclado, o que fica e o que vai para a quarentena.
+# Video Manager
 
-O motor de extração de frames é o mesmo do notebook `Thumbnail Maker` — inclusive
-a convenção de nome das thumbnails (`meu_video.mp4.jpg`), então as thumbs que você
-já gerou são reaproveitadas sem precisar gerar de novo.
+*[Leia em português](README.pt-BR.md)*
 
-## Instalar
+A desktop app (PySide6) that builds *contact sheets* for a folder of videos and
+lets you triage them from the keyboard: what stays, and what goes to quarantine.
+
+Built for the folder that grew past the point of watching everything again — a
+grid of frames is usually enough to decide, and the ones it isn't enough for get
+their own pile.
+
+The frame-extraction engine comes from the `Thumbnail Maker` notebook, naming
+convention included (`my_video.mp4.jpg`), so thumbnails you generated earlier are
+reused instead of being made again.
+
+## Requirements
+
+- Python 3.12
+- [uv](https://docs.astral.sh/uv/)
+- A desktop session (Linux, macOS or Windows)
+
+## Install
 
 ```bash
-uv tool install --editable ~/Projetos/video_manager
+git clone https://github.com/FRubik/video-manager.git
+cd video-manager
+uv tool install --editable .
 ```
 
-Isso coloca o comando `video-manager` em `~/.local/bin`, então ele roda de
-qualquer pasta, sem `uv` na frente:
+This puts a `video-manager` command in `~/.local/bin`, so it runs from any
+folder, with no `uv` in front:
 
 ```bash
 video-manager
 ```
 
-Como a instalação é `--editable`, o comando aponta para o código desta pasta:
-editar um arquivo já vale na próxima execução, sem reinstalar. Só é preciso
-rodar `uv tool upgrade video-manager` se as **dependências** do projeto mudarem.
+Because the install is `--editable`, the command points at the code in this
+folder: editing a file already counts on the next run, with no reinstall. You
+only need `uv tool upgrade video-manager` when the project's **dependencies**
+change.
 
-Para desinstalar: `uv tool uninstall video-manager`.
+To uninstall: `uv tool uninstall video-manager`.
 
-## Executar sem instalar
+### Menu entry and icon (Linux)
 
-Dentro da pasta do projeto:
+The app carries its own icon, but the desktop only knows about it once the
+launcher is installed:
 
 ```bash
-uv run video-manager        # comando declarado em [project.scripts]
+./packaging/install-desktop-entry.sh
+```
+
+That copies the icons into `~/.local/share/icons/hicolor` and the launcher into
+`~/.local/share/applications` — no root needed. `--uninstall` removes the same
+files.
+
+It matters on Wayland: there the taskbar icon comes from the `.desktop` file,
+matched to the window by app id, so without this step the window keeps the
+compositor's generic icon no matter what the app sets.
+
+## Running without installing
+
+From inside the project folder:
+
+```bash
+uv run video-manager        # command declared in [project.scripts]
 uv run python -m video_manager
 ```
 
-Atenção: esta pasta **não tem `.venv`** de propósito — o ambiente da ferramenta
-instalada já contém tudo, e manter os dois duplicava ~900 MB (PySide6 é pesado,
-e o uv não compartilha esses arquivos entre os dois ambientes). Qualquer
-`uv run` aqui recria o `.venv` e traz a duplicação de volta.
+Careful: this folder has **no `.venv`** on purpose — the installed tool's
+environment already has everything, and keeping both duplicated ~900 MB (PySide6
+is heavy, and uv does not share those files between the two environments). Any
+`uv run` here recreates the `.venv` and brings the duplication back.
 
-Para rodar um script avulso contra as dependências do projeto sem recriar nada,
-use o Python da própria ferramenta:
+To run a one-off script against the project's dependencies without recreating
+anything, use the tool's own Python:
 
 ```bash
-~/.local/share/uv/tools/video-manager/bin/python meu_teste.py
+~/.local/share/uv/tools/video-manager/bin/python my_test.py
 ```
 
-## Como funciona
+## Language
 
-### 1. Tela inicial
+The interface speaks **English** and **Brazilian Portuguese**. The selector sits
+at the top right of the start screen and switches on the spot — no restart, and
+a review session in progress survives the switch. The choice is saved in
+`config.json`; with nothing saved, the app follows the system locale and falls
+back to English.
 
-- **Pastas**: vídeos, thumbnails, descartes (`<pasta de vídeos>/_para_apagar`) e
-  *talvez* (`<pasta de vídeos>/_talvez`). As duas últimas são preenchidas
-  sozinhas e acompanham a troca da pasta de vídeos enquanto estiverem no valor
-  padrão; o botão **Padrão** ao lado de cada uma refaz o caminho a qualquer
-  momento, e nada impede apontar para outro lugar.
-- **Gerar thumbnails**: desmarcado, o programa vai direto para a revisão usando as
-  thumbs existentes. Marcado, gera antes — com a opção *somente vídeos que ainda
-  não têm thumbnail*, que é o caso comum quando você adiciona vídeos novos.
-- **Sessão de revisão**:
-  - *Revisar todos* — passa por tudo que tem thumbnail;
-  - *Verificação randômica* — sorteia N vídeos e a sessão termina neles, para
-    fatiar uma pasta grande ao longo de vários dias;
-  - *Pular vídeos que já revisei* — usa o histórico para não repetir o que você
-    já decidiu em sessões anteriores;
-  - *Mostrar em ordem randômica* — embaralha a exibição em vez de seguir o
-    alfabeto. Numa pasta onde os nomes agrupam o conteúdo, a ordem alfabética
-    faz você ver tudo de um tipo de uma vez;
-  - *Vídeos do "talvez"* — **deixar de fora**, **incluir na sessão** (junto com
-    os demais) ou **somente eles**, para uma rodada dedicada às dúvidas que
-    você já acumulou (veja abaixo).
+The language also drives what isn't text: the decimal separator (`1,234.5 GB`
+against `1.234,5 GB`), the date format, and the default name of the discards and
+*maybe* folders (`_to_delete` / `_maybe` in English, `_para_apagar` / `_talvez`
+in Portuguese). Those are directories on disk, so both names are always
+recognised as "still the default" — switching languages never orphans a folder
+you already have.
 
-Sortear *quais* vídeos e escolher em que *ordem* mostrá-los são coisas
-separadas: a verificação randômica sorteia a amostra e a exibe em ordem
-alfabética, a menos que você também marque a ordem randômica.
+## How it works
 
-Quando existe uma **sessão interrompida** guardada para essas pastas, um painel
-alaranjado aparece acima do resumo, com **Retomar** e **Descartar** — veja
-"Parar no meio e continuar depois".
+### 1. Start screen
 
-O painel de resumo mostra quantos vídeos existem, quantos têm thumbnail, quantos
-já foram revisados e quantos entram nesta sessão. Logo abaixo vem o painel de
-**volume** — veja a seção "Quanto vai sobrar".
+- **Folders**: videos, thumbnails, discards (`<videos folder>/_to_delete`) and
+  *maybe* (`<videos folder>/_maybe`). The last two fill themselves in and follow
+  the videos folder around for as long as they hold the default value; the
+  **Default** button next to each one rebuilds the path at any time, and nothing
+  stops you from pointing them somewhere else.
+- **Generate thumbnails**: unchecked, the app goes straight to the review screen
+  using existing thumbnails. Checked, it generates first — with the *only videos
+  that have no thumbnail yet* option, which is the common case when you add new
+  videos.
+- **Review session**:
+  - *Review every video* — goes through everything that has a thumbnail;
+  - *Random check* — draws N videos and the session ends with them, to slice a
+    large folder across several days;
+  - *Skip videos I already reviewed* — uses the history so you don't redo what
+    you decided in earlier sessions;
+  - *Show in random order* — shuffles the display instead of following the
+    alphabet. In a folder where names group the content, alphabetical order makes
+    you watch everything of one kind in a row;
+  - *Videos in "maybe"* — **leave out**, **include in the session** (alongside
+    the rest) or **only those**, for a round dedicated to the doubts you have
+    piled up (see below).
 
-### 2. Tela de revisão
+Drawing *which* videos and choosing what *order* to show them in are separate
+things: the random check draws the sample and shows it alphabetically, unless you
+also check random order.
 
-Uma thumbnail por vez, ocupando a janela, com a lista da sessão à direita.
+When an **interrupted session** is stored for those folders, an orange panel
+appears above the summary, with **Resume** and **Discard** — see "Stopping
+halfway and picking it up later".
 
-As teclas padrão ficam agrupadas à esquerda, para revisar com uma mão só:
+The summary panel shows how many videos exist, how many have a thumbnail, how
+many were already reviewed and how many are in this session. Right below it comes
+the **volume** panel — see "How much will be left".
 
-| Tecla | Ação |
+### 2. Review screen
+
+One thumbnail at a time, filling the window, with the session list on the right.
+
+The default keys sit on the left of the keyboard, so you can review one-handed:
+
+| Key | Action |
 |---|---|
-| `A` ou `←` | vídeo anterior (dá para voltar e trocar a decisão) |
-| `D`, `→` ou `Espaço` | próximo vídeo, sem decidir |
-| `E` | marca para manter e avança |
-| `W` | marca como *talvez* — rever depois — e avança |
-| `Q` ou `Del` | marca para apagar e avança |
-| `G` | abre o vídeo no player padrão do sistema |
-| `Z` ou clique | alterna entre ajustar à janela e zoom 1:1 |
-| `Enter` | aplica as decisões e encerra a sessão |
+| `A` or `←` | previous video (you can go back and change the decision) |
+| `D`, `→` or `Space` | next video, without deciding |
+| `E` | marks it to keep and moves on |
+| `W` | marks it as *maybe* — review later — and moves on |
+| `Q` or `Del` | marks it to delete and moves on |
+| `G` | opens the video in the system's default player |
+| `Z` or click | toggles between fit-to-window and 1:1 zoom |
+| `Enter` | applies the decisions and ends the session |
 
-O botão **Atalhos…**, na tela inicial, troca as teclas de cada ação — a escolha
-fica salva no `config.json`. As alternativas da tabela (`←`, `→`, `Espaço`,
-`Del`) continuam valendo, e `Enter` não é remapeável.
+The **Shortcuts…** button, on the start screen, changes the key for each action —
+the choice is saved in `config.json`. The alternatives in the table (`←`, `→`,
+`Space`, `Del`) keep working, and `Enter` cannot be remapped.
 
-Nada é movido enquanto você decide — as marcações só são aplicadas em **Aplicar e
-finalizar** (ou no fim da sessão, que pergunta), sempre com confirmação. Ao lado
-dele, **Salvar e sair** guarda a sessão para outro dia sem mover nada.
+Nothing is moved while you decide — the marks are only applied on **Apply and
+finish** (or at the end of the session, which asks), always with a confirmation.
+Next to it, **Save and leave** stores the session for another day without moving
+anything.
 
-### 3. O "talvez"
+### 3. The "maybe"
 
-Para o vídeo que a thumbnail não resolve — precisa assistir um trecho, comparar
-com outro, decidir com a cabeça mais fria. `W` manda para a pasta *talvez* em vez
-de decidir na hora.
+For the video a thumbnail can't settle — you need to watch a stretch, compare it
+with another one, decide with a cooler head. `W` sends it to the *maybe* folder
+instead of forcing a decision right now.
 
-O que separa o *talvez* de uma decisão: ele **não entra no histórico como
-revisado**. Com *incluir na sessão*, esses vídeos voltam a aparecer nas próximas
-sessões junto com os novos, sem você mexer em campo nenhum. Quando finalmente
-decidir:
+What separates *maybe* from a decision: it **does not go into the history as
+reviewed**. With *include in the session*, those videos come back in later
+sessions alongside the new ones, without you touching a single field. When you
+finally decide:
 
-- **manter** devolve o vídeo à pasta de vídeos e aí sim registra como revisado;
-- **apagar** manda para a quarentena, como qualquer outro;
-- **talvez** de novo deixa onde está, para a próxima rodada.
+- **keep** returns the video to the videos folder and only then records it as
+  reviewed;
+- **delete** sends it to quarantine, like any other;
+- **maybe** again leaves it where it is, for the next round.
 
-A opção *somente eles* existe para a outra ponta desse ciclo: uma sessão inteira
-feita das dúvidas acumuladas, sem nenhum vídeo novo no meio. É o momento de
-sentar e resolver a pilha — comparar os parecidos, abrir no player o que a
-thumbnail não resolve — em vez de adiar cada um de novo. Vale combinar com a
-verificação randômica quando a pilha ficou grande demais para uma sentada.
+The *only those* option exists for the other end of that cycle: a whole session
+made of the accumulated doubts, with no new video in between. That's the moment
+to sit down and clear the pile — compare the similar ones, open in the player
+what the thumbnail can't settle — instead of deferring each one again. Worth
+combining with the random check when the pile got too big for one sitting.
 
-### 4. O que acontece ao aplicar
+### 4. What happens when you apply
 
-- Vídeos marcados como *apagar* são **movidos** para a pasta de descartes (nunca
-  apagados); nomes repetidos ganham sufixo `(2)`, `(3)`… em vez de sobrescrever.
-- A **thumbnail continua** na pasta de thumbs, para você reavaliar o descarte
-  pela imagem antes de apagar de vez.
-- Cada movimento é registrado em `_movimentos.jsonl` (origem, destino, data e
-  motivo), dentro da pasta de destino — ou da pasta *talvez*, no caso de uma
-  devolução, para não largar arquivo de log na sua pasta de vídeos.
-- Um movimento que falha (permissão, disco cheio) **não** é registrado no
-  histórico: o vídeo volta a aparecer na próxima sessão, com a decisão a tomar
-  de novo.
+- Videos marked *delete* are **moved** to the discards folder (never deleted);
+  repeated names get a `(2)`, `(3)`… suffix instead of overwriting.
+- The **thumbnail stays** in the thumbs folder, so you can reassess a discard by
+  the image before deleting it for good.
+- Every move is recorded in `_movimentos.jsonl` (origin, destination, date and
+  reason), inside the destination folder — or inside the *maybe* folder, in the
+  case of a return, so no log file is dumped into your videos folder.
+- A move that fails (permissions, full disk) is **not** recorded in the history:
+  the video shows up again in the next session, with the decision still to make.
 
-### 5. Quanto vai sobrar
+### 5. How much will be left
 
-A pergunta que o painel de volume responde: *em que tamanho esta pasta vai
-parar quando eu terminar de triar tudo?*
+The question the volume panel answers: *what size will this folder settle at once
+I'm done triaging everything?*
 
-Na tela inicial ele mostra o que a pasta ocupa hoje, o que está no *talvez*, o
-que está parado na quarentena (ainda ocupando disco até você apagar de verdade)
-e, com base no histórico:
+On the start screen it shows what the folder takes up today, what is in *maybe*,
+what is sitting in quarantine (still using disk until you actually delete it)
+and, based on the history:
 
 ```
-1,8 TB em 2.431 vídeo(s) · 12,4 GB no “talvez” · 210,5 GB parados na quarentena
-Você descarta 43% do volume que decide (612 vídeos decididos, 890,0 GB).
-Faltam decidir 1,1 TB — nesse ritmo, devem sobrar 1,3 TB no fim do processo.
+1.8 TB across 2,431 video(s) · 12.4 GB in “maybe” · 210.5 GB sitting in quarantine
+You discard 43% of the volume you decide on (612 videos decided, 890.0 GB).
+1.1 TB still to decide — at this pace, 1.3 TB should be left when it is over.
 ```
 
-A conta é direta: a fração de **bytes** que você mandou para a quarentena, entre
-tudo que já decidiu, aplicada ao volume que ainda falta decidir. Não é a fração
-de *arquivos* — descartar dez clipes de 20 MB não diz o mesmo que descartar um
-arquivo de 8 GB, e o que interessa aqui é o disco.
+The math is direct: the fraction of **bytes** you sent to quarantine, out of
+everything you already decided, applied to the volume still to be decided. It is
+not the fraction of *files* — discarding ten 20 MB clips does not say the same
+thing as discarding one 8 GB file, and what matters here is the disk.
 
-Na tela de revisão a mesma linha acompanha a sessão: quanto você já marcou para
-apagar, para o *talvez* e para manter, com a projeção reagindo a cada decisão —
-inclusive às desta sessão, antes mesmo de aplicar.
+On the review screen the same line follows the session: how much you already
+marked to delete, to *maybe* and to keep, with the projection reacting to each
+decision — including this session's, before applying anything.
 
-A taxa só aparece depois de **5 vídeos decididos com o tamanho registrado**;
-antes disso ela seria 0% ou 100%. Como o tamanho passou a ser gravado no
-histórico só a partir desta versão, as decisões que você tomou antes não entram
-na conta — a projeção começa a valer depois das próximas sessões.
+The rate only appears after **5 videos decided with their size recorded**; before
+that it would be 0% or 100%. Since the size only started being written to the
+history in this version, decisions you made earlier don't count — the projection
+starts to mean something after the next few sessions.
 
-### 6. Parar no meio e continuar depois
+### 6. Stopping halfway and picking it up later
 
-Uma pasta com milhares de vídeos não cabe numa sentada, e a interrupção não
-avisa. Há duas formas de largar a sessão pela metade, para dois problemas
-diferentes.
+A folder with thousands of videos doesn't fit one sitting, and interruptions
+don't announce themselves. There are two ways to drop a session halfway, for two
+different problems.
 
-**Aplicar e continuar outro dia.** Aperte `Enter`, aplique, e pronto: os vídeos
-decididos entram no histórico e *Pular vídeos que já revisei* os deixa de fora
-das próximas sessões. Pode re-randomizar à vontade — o que você já viu não
-volta. Fechar a janela com decisões pendentes oferece **Aplicar e sair**, que
-faz exatamente isso sem exigir que você lembre do `Enter`.
+**Apply and continue another day.** Hit `Enter`, apply, and that's it: the
+decided videos go into the history and *Skip videos I already reviewed* leaves
+them out of the next sessions. Re-randomise as much as you like — what you have
+already seen doesn't come back. Closing the window with pending decisions offers
+**Apply and leave**, which does exactly that without asking you to remember
+`Enter`.
 
-**Guardar a sessão inteira.** É o que a *verificação randômica* pede: aplicar no
-meio encerra aquele sorteio, e os vídeos que você ainda não viu voltam para o
-bolo — talvez nunca mais caindo juntos. **Salvar e sair** congela a sessão como
-ela está: a lista sorteada, as marcações que você já fez e a posição em que
-parou. Na próxima abertura, **Retomar** devolve tudo, inclusive as cores na
-lista lateral, e você segue do vídeo seguinte ao último decidido.
+**Store the whole session.** That's what the *random check* calls for: applying
+halfway ends that draw, and the videos you haven't seen go back into the pot —
+maybe never landing together again. **Save and leave** freezes the session as it
+stands: the drawn list, the marks you already made and the position you stopped
+at. Next time you open the app, **Resume** gives it all back, colours in the side
+list included, and you carry on from the video after the last one decided.
 
-Não é preciso lembrar de salvar: **cada decisão grava a sessão em disco**. Se o
-programa morrer, a máquina desligar ou você fechar a janela no susto, a sessão
-está lá na volta. O arquivo é pequeno e some sozinho quando você aplica.
+You don't have to remember to save: **each decision writes the session to disk**.
+If the program dies, the machine shuts down or you close the window in a panic,
+the session is there when you come back. The file is small and disappears on its
+own when you apply.
 
-Entre salvar e retomar o mundo pode ter mudado, e a retomada lida com isso:
+The world may have changed between saving and resuming, and resuming deals with
+that:
 
-- vídeo apagado ou movido para fora das pastas → sai da sessão, com aviso de
-  quantos ficaram de fora, e a posição salva acompanha o encurtamento;
-- vídeo que trocou de pasta (do *talvez* para os vídeos, por exemplo) →
-  reencontrado pelo nome, com a origem corrigida;
-- **iniciar uma sessão nova** com uma salva pendente → o programa pergunta
-  antes, porque isso descarta as marcações guardadas.
+- video deleted or moved out of the folders → drops out of the session, with a
+  notice of how many were left out, and the saved position follows the shrinking;
+- video that changed folders (from *maybe* to the videos folder, say) → found
+  again by name, with its origin corrected;
+- **starting a new session** with one pending → the app asks first, because that
+  throws the stored marks away.
 
-Só há uma sessão salva por pasta de thumbnails, e ela é oferecida apenas quando
-a pasta de vídeos é a mesma de quando foi salva. Sair sem ter decidido nada não
-salva nada — não há o que preservar numa sessão em que você só navegou.
+There is only one saved session per thumbnails folder, and it is only offered when
+the videos folder is the same as when it was saved. Leaving without having decided
+anything saves nothing — there is nothing to preserve in a session you only
+browsed.
 
-## Arquivos de estado
+## State files
 
-| Arquivo | Onde | Para quê |
+| File | Where | What for |
 |---|---|---|
-| `.video_manager_state.json` | pasta de thumbnails | histórico de decisões, com o tamanho de cada vídeo (alimenta o "pular já revisados" e a projeção de volume; o *talvez* fica registrado, mas não conta como revisado) |
-| `.video_manager_session.json` | pasta de thumbnails | sessão interrompida: lista, marcações não aplicadas e posição (some ao aplicar) |
-| `_movimentos.jsonl` | pastas de descartes e de *talvez* | log dos vídeos movidos |
-| `config.json` | `~/.config/video_manager/` | últimas pastas, opções usadas e atalhos |
+| `.video_manager_state.json` | thumbnails folder | decision history, with each video's size (feeds "skip already reviewed" and the volume projection; *maybe* is recorded but does not count as reviewed) |
+| `.video_manager_session.json` | thumbnails folder | interrupted session: list, unapplied marks and position (disappears once applied) |
+| `_movimentos.jsonl` | discards and *maybe* folders | log of the videos that were moved |
+| `config.json` | `~/.config/video_manager/` | language, last folders, options used and shortcuts |
 
-O histórico fica junto das thumbs de propósito: se a pasta mudar de lugar ou de
-máquina, ele vai junto.
+The history lives next to the thumbnails on purpose: if the folder moves to
+another place or another machine, it goes along.
 
-## Nota sobre abrir o vídeo no player (tecla `G`)
+## A note on opening the video in the player (`G` key)
 
-Duas armadilhas custaram um crash do VLC e estão resolvidas — vale saber, porque
-qualquer código novo que lance um programa externo esbarra nelas de novo:
+Two traps cost a VLC crash and are solved — worth knowing, because any new code
+that launches an external program runs into them again:
 
-1. **Não passe URL `file://`.** O `.desktop` do VLC recebe a URL via `%U`, e
-   nomes com `#`, `%`, `&` ou espaços podem ser reinterpretados no caminho. O
-   caminho vai como argumento único para `xdg-open`.
+1. **Don't pass a `file://` URL.** VLC's `.desktop` receives the URL through
+   `%U`, and names with `#`, `%`, `&` or spaces can be reinterpreted inside the
+   path. The path goes as a single argument to `xdg-open`.
 
-2. **Não deixe o processo filho herdar o ambiente sujo.** O `import cv2`
-   sobrescreve `QT_QPA_PLATFORM_PLUGIN_PATH`, `QT_QPA_FONTDIR` e
-   `LD_LIBRARY_PATH` apontando para dentro do site-packages do OpenCV, que traz
-   um único `libqxcb.so` ligado às libs Qt dele. Um app Qt lançado como filho
-   tenta carregar aquele plugin e aborta com `Could not load the Qt platform
-   plugin "xcb"` — o VLC morria com SIGABRT antes mesmo de olhar o arquivo.
-   Por isso `video_manager/__init__.py` guarda `PRISTINE_ENV` (cópia do ambiente
-   feita antes de qualquer import pesado) e `library.launch_env()` a entrega aos
-   processos externos.
+2. **Don't let the child process inherit the dirty environment.** `import cv2`
+   overwrites `QT_QPA_PLATFORM_PLUGIN_PATH`, `QT_QPA_FONTDIR` and
+   `LD_LIBRARY_PATH` pointing inside OpenCV's site-packages, which ships a single
+   `libqxcb.so` linked against its own Qt libs. A Qt app launched as a child
+   tries to load that plugin and aborts with `Could not load the Qt platform
+   plugin "xcb"` — VLC died with SIGABRT before even looking at the file.
+   That's why `video_manager/__init__.py` keeps `PRISTINE_ENV` (a copy of the
+   environment taken before any heavy import) and `library.launch_env()` hands it
+   to external processes.
 
-## Estrutura
+## Layout
 
 ```
 video_manager/
-├── config.py      preferências persistidas
-├── library.py     varredura, pareamento vídeo↔thumb, sessão salva, quarentena
-├── thumbs.py      extração dos frames e montagem da grade (motor do notebook)
-├── worker.py      geração em thread separada
-├── ui_setup.py    tela inicial
-├── ui_review.py   tela de revisão
-└── app.py         janela principal
+├── config.py      persisted preferences
+├── i18n.py        interface strings in English and Portuguese
+├── icons.py       loads the app icon
+├── icons/         the icon itself (hicolor sizes + SVG)
+├── library.py     scanning, video↔thumb pairing, saved session, quarantine
+├── shortcuts.py   review actions and the keys that trigger them
+├── thumbs.py      frame extraction and grid assembly (the notebook's engine)
+├── worker.py      generation on a separate thread
+├── ui_setup.py    start screen
+├── ui_review.py   review screen
+├── ui_shortcuts.py  key customisation dialog
+└── app.py         main window
 ```
+
+## Contributing
+
+Issues and pull requests are welcome. Two things worth knowing before touching
+the code:
+
+- **No user-visible text goes straight into a UI module.** Add a key to
+  `i18n.py`, with both languages, and call `tr("your.key")`. A missing key shows
+  up raw on screen, on purpose — a silent fallback would hide the omission.
+- Screens that can be re-rendered implement `retranslate()`, which rewrites every
+  fixed label. A new widget with text needs a line there, otherwise it stays
+  frozen in the language it was created in.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

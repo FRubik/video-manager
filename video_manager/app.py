@@ -12,8 +12,9 @@ from PySide6.QtWidgets import (
     QStackedWidget,
 )
 
-from . import library
+from . import i18n, library
 from .config import Config
+from .i18n import tr
 from .library import ReviewState, VideoEntry
 from .thumbs import ThumbOptions
 from .ui_review import ReviewView
@@ -24,10 +25,12 @@ from .worker import ThumbWorker
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Gerenciador de Vídeos")
         self.resize(1280, 820)
 
         self.config = Config.load()
+        # antes de construir qualquer tela: elas leem os textos na criação
+        i18n.set_language(self.config.language)
+        self.setWindowTitle(tr("app.title"))
         self.setup_view = SetupView(self.config)
         self.review_view = ReviewView()
 
@@ -41,6 +44,7 @@ class MainWindow(QMainWindow):
         self.setup_view.start_requested.connect(self.on_start)
         self.setup_view.resume_requested.connect(self.on_resume)
         self.setup_view.key_bindings_changed.connect(self.review_view.apply_key_bindings)
+        self.setup_view.language_changed.connect(self.on_language_changed)
         self.review_view.session_finished.connect(self.on_session_finished)
         self.review_view.session_saved.connect(self.on_session_saved)
 
@@ -48,24 +52,30 @@ class MainWindow(QMainWindow):
         self._progress: QProgressDialog | None = None
         self._pending_config: Config | None = None
 
+    # --------------------------------------------------------------- idioma
+    def on_language_changed(self, code: str) -> None:
+        """Reescreve a interface inteira no idioma escolhido, sem reiniciar."""
+        i18n.set_language(code)
+        self.setWindowTitle(tr("app.title"))
+        self.setup_view.retranslate()
+        self.review_view.retranslate()
+
     # --------------------------------------------------------------- início
     def on_start(self, config: Config) -> None:
         videos_dir = Path(config.videos_dir).expanduser()
         thumbs_dir = Path(config.thumbs_dir).expanduser() if config.thumbs_dir else Path()
 
         if not videos_dir.is_dir():
-            QMessageBox.warning(self, "Pasta inválida", "A pasta de vídeos não existe.")
+            QMessageBox.warning(self, tr("app.invalid_folder.title"), tr("app.invalid_folder.body"))
             return
         if not config.thumbs_dir:
             QMessageBox.warning(
-                self, "Pasta de thumbnails", "Informe a pasta onde ficam (ou serão salvas) as thumbnails."
+                self, tr("app.thumbs_folder.title"), tr("app.thumbs_folder.empty")
             )
             return
         if not config.generate_thumbs and not thumbs_dir.is_dir():
             QMessageBox.warning(
-                self,
-                "Pasta de thumbnails",
-                "A pasta de thumbnails não existe. Marque “Gerar thumbnails” ou corrija o caminho.",
+                self, tr("app.thumbs_folder.title"), tr("app.thumbs_folder.missing")
             )
             return
         if not config.trash_dir:
@@ -76,9 +86,7 @@ class MainWindow(QMainWindow):
             self.setup_view.maybe_picker.setText(config.maybe_dir)
         if Path(config.maybe_dir).expanduser() == Path(config.trash_dir).expanduser():
             QMessageBox.warning(
-                self,
-                "Pastas iguais",
-                "As pastas de descartes e de “talvez” precisam ser diferentes.",
+                self, tr("app.same_folders.title"), tr("app.same_folders.body")
             )
             return
 
@@ -103,7 +111,7 @@ class MainWindow(QMainWindow):
 
         if not pending:
             QMessageBox.information(
-                self, "Nada a gerar", "Todos os vídeos já possuem thumbnail. Indo para a revisão."
+                self, tr("app.gen.nothing.title"), tr("app.gen.nothing.body")
             )
             self._start_review(config)
             return
@@ -118,9 +126,9 @@ class MainWindow(QMainWindow):
         )
 
         self._progress = QProgressDialog(
-            "Gerando thumbnails…", "Cancelar", 0, len(pending), self
+            tr("app.gen.progress.label"), tr("common.cancel"), 0, len(pending), self
         )
-        self._progress.setWindowTitle("Processando")
+        self._progress.setWindowTitle(tr("app.gen.progress.title"))
         self._progress.setWindowModality(Qt.WindowModal)
         self._progress.setMinimumDuration(0)
         self._progress.setAutoClose(False)
@@ -142,7 +150,7 @@ class MainWindow(QMainWindow):
         dialog = self._progress
         if dialog is None:
             return
-        dialog.setLabelText(f"Gerando thumbnails… {done}/{total}\n{name}")
+        dialog.setLabelText(tr("app.gen.progress.detail", done=done, total=total, name=name))
         dialog.setValue(done)
 
     def _on_generation_finished(self, results: list) -> None:
@@ -155,12 +163,16 @@ class MainWindow(QMainWindow):
         if failures:
             detail = "\n".join(f"• {r.video.name}: {r.error}" for r in failures[:15])
             if len(failures) > 15:
-                detail += f"\n… e mais {len(failures) - 15}"
+                detail += tr("app.gen.failed.more", n=len(failures) - 15)
             QMessageBox.warning(
                 self,
-                "Alguns vídeos falharam",
-                f"{len(results) - len(failures)} thumbnail(s) gerada(s), "
-                f"{len(failures)} com erro:\n\n{detail}",
+                tr("app.gen.failed.title"),
+                tr(
+                    "app.gen.failed.body",
+                    ok=len(results) - len(failures),
+                    failed=len(failures),
+                    detail=detail,
+                ),
             )
 
         if self._pending_config is not None:
@@ -188,14 +200,10 @@ class MainWindow(QMainWindow):
         )
 
         if not session:
-            motivo = (
-                "Nenhum vídeo com thumbnail na pasta “talvez”.\n"
-                "Escolha “incluir na sessão” ou “deixar de fora” para rever o resto."
-                if config.only_maybe
-                else "Nenhum vídeo com thumbnail pendente de revisão.\n"
-                "Desmarque “Pular vídeos já revisados” para rever tudo de novo."
+            motivo = tr(
+                "app.nothing.only_maybe" if config.only_maybe else "app.nothing.all_reviewed"
             )
-            QMessageBox.information(self, "Nada para revisar", motivo)
+            QMessageBox.information(self, tr("app.nothing.title"), motivo)
             return
 
         self.review_view.load_session(
@@ -222,11 +230,13 @@ class MainWindow(QMainWindow):
             return True
         answer = QMessageBox.question(
             self,
-            "Há uma sessão salva",
-            f"Existe uma sessão de {salva.saved_at_label} com {salva.total} vídeo(s) "
-            f"e {salva.decided} decisão(ões) ainda não aplicada(s).\n\n"
-            "Começar uma sessão nova descarta essas marcações. "
-            "Para continuar de onde parou, volte e use “Retomar”.",
+            tr("app.overwrite.title"),
+            tr(
+                "app.overwrite.body",
+                when=salva.saved_at_label,
+                total=salva.total,
+                decided=salva.decided,
+            ),
             QMessageBox.Discard | QMessageBox.Cancel,
             QMessageBox.Cancel,
         )
@@ -242,7 +252,7 @@ class MainWindow(QMainWindow):
         salva = library.load_session(thumbs_dir)
         if salva is None:
             QMessageBox.information(
-                self, "Sem sessão salva", "Não há sessão guardada para esta pasta de thumbnails."
+                self, tr("app.resume.none.title"), tr("app.resume.none.body")
             )
             self.setup_view.refresh_summary()
             return
@@ -258,9 +268,7 @@ class MainWindow(QMainWindow):
 
         if not session:
             QMessageBox.warning(
-                self,
-                "Sessão vazia",
-                "Nenhum vídeo da sessão salva ainda está nas pastas. A sessão foi descartada.",
+                self, tr("app.resume.empty.title"), tr("app.resume.empty.body")
             )
             library.clear_session(thumbs_dir)
             self.setup_view.refresh_summary()
@@ -269,9 +277,8 @@ class MainWindow(QMainWindow):
         if missing:
             QMessageBox.information(
                 self,
-                "Sessão retomada parcialmente",
-                f"{missing} vídeo(s) da sessão não estão mais nas pastas e ficaram de fora.\n"
-                f"Retomando com os {len(session)} restantes.",
+                tr("app.resume.partial.title"),
+                tr("app.resume.partial.body", missing=missing, remaining=len(session)),
             )
 
         self.review_view.load_session(
@@ -308,18 +315,14 @@ class MainWindow(QMainWindow):
     def _resolve_pending_on_exit(self) -> bool:
         """Decisões não aplicadas na hora de fechar. True se pode sair."""
         box = QMessageBox(self)
-        box.setWindowTitle("Sair da revisão")
+        box.setWindowTitle(tr("app.exit.title"))
         box.setIcon(QMessageBox.Question)
-        box.setText("Há decisões desta sessão que ainda não foram aplicadas.")
-        box.setInformativeText(
-            "<b>Salvar</b> guarda a sessão como está — dá para retomar na tela inicial.<br>"
-            "<b>Aplicar</b> move os vídeos agora e encerra a sessão.<br>"
-            "<b>Descartar</b> perde as marcações."
-        )
-        salvar = box.addButton("Salvar sessão e sair", QMessageBox.AcceptRole)
-        aplicar = box.addButton("Aplicar e sair", QMessageBox.ApplyRole)
-        box.addButton("Descartar", QMessageBox.DestructiveRole)
-        box.addButton("Cancelar", QMessageBox.RejectRole)
+        box.setText(tr("app.exit.text"))
+        box.setInformativeText(tr("app.exit.detail"))
+        salvar = box.addButton(tr("app.exit.save"), QMessageBox.AcceptRole)
+        aplicar = box.addButton(tr("app.exit.apply"), QMessageBox.ApplyRole)
+        box.addButton(tr("common.discard"), QMessageBox.DestructiveRole)
+        box.addButton(tr("common.cancel"), QMessageBox.RejectRole)
         box.setDefaultButton(salvar)
         box.exec()
 

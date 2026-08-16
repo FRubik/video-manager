@@ -12,6 +12,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from . import i18n
+from .i18n import tr
+
 VIDEO_EXTS = {
     ".mp4", ".avi", ".mov", ".mkv", ".webm", ".wmv",
     ".flv", ".m4v", ".mpg", ".mpeg", ".ts", ".3gp",
@@ -62,13 +65,9 @@ class VideoEntry:
                 self._size = 0
         return self._size
 
-    @property
-    def size_mb(self) -> float:
-        return self.size_bytes / (1024 * 1024)
-
 
 def format_size(num_bytes: float) -> str:
-    """Tamanho legível no formato brasileiro (`1.234,5 GB`)."""
+    """Tamanho legível, com os separadores do idioma corrente."""
     valor = float(num_bytes)
     unidade = "B"
     for proxima in ("KB", "MB", "GB", "TB"):
@@ -76,9 +75,12 @@ def format_size(num_bytes: float) -> str:
             break
         valor /= 1024
         unidade = proxima
-    texto = f"{valor:,.{0 if unidade == 'B' else 1}f}"
-    # de 1,234.5 (padrão do Python) para 1.234,5
-    return texto.replace(",", "\x00").replace(".", ",").replace("\x00", ".") + f" {unidade}"
+    return f"{i18n.format_number(valor, 0 if unidade == 'B' else 1)} {unidade}"
+
+
+def format_rate(fraction: float) -> str:
+    """Percentual sem casas decimais, no formato do idioma corrente."""
+    return f"{i18n.format_number(fraction * 100)}%"
 
 
 def list_videos(videos_dir: Path) -> list[Path]:
@@ -165,9 +167,6 @@ class ReviewState:
             "size": size_bytes,
         }
 
-    def forget(self, name: str) -> None:
-        self.reviewed.pop(name, None)
-
     def save(self) -> None:
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -208,7 +207,7 @@ class SavedSession:
     def saved_at_label(self) -> str:
         """Data legível, ou o texto cru se não for uma data ISO."""
         try:
-            return datetime.fromisoformat(self.saved_at).strftime("%d/%m às %H:%M")
+            return datetime.fromisoformat(self.saved_at).strftime(tr("format.datetime"))
         except ValueError:
             return self.saved_at
 
@@ -525,12 +524,36 @@ def _log_move(dest_dir: Path, origin: Path, dest: Path, motivo: str) -> None:
         pass
 
 
+#: nome da pasta padrão em cada idioma. Não é texto de interface: vira um
+#: diretório no disco, então mudar um valor aqui deixa órfã a pasta que já
+#: existe — por isso `*_dir_candidates` reconhece todos eles, e não só o atual.
+TRASH_DIR_NAMES: dict[str, str] = {"pt": "_para_apagar", "en": "_to_delete"}
+MAYBE_DIR_NAMES: dict[str, str] = {"pt": "_talvez", "en": "_maybe"}
+
+
+def default_trash_dir_name() -> str:
+    return TRASH_DIR_NAMES.get(i18n.current_language(), TRASH_DIR_NAMES["en"])
+
+
+def default_maybe_dir_name() -> str:
+    return MAYBE_DIR_NAMES.get(i18n.current_language(), MAYBE_DIR_NAMES["en"])
+
+
 def default_trash_dir(videos_dir: Path) -> Path:
-    return videos_dir / "_para_apagar"
+    return videos_dir / default_trash_dir_name()
 
 
 def default_maybe_dir(videos_dir: Path) -> Path:
-    return videos_dir / "_talvez"
+    return videos_dir / default_maybe_dir_name()
+
+
+def trash_dir_candidates(videos_dir: Path) -> set[Path]:
+    """Caminhos que contam como “ainda é o padrão”, em qualquer idioma."""
+    return {videos_dir / name for name in TRASH_DIR_NAMES.values()}
+
+
+def maybe_dir_candidates(videos_dir: Path) -> set[Path]:
+    return {videos_dir / name for name in MAYBE_DIR_NAMES.values()}
 
 
 #: variáveis que o OpenCV reescreve e que envenenam qualquer app Qt filho
@@ -567,7 +590,7 @@ def open_in_player(path: Path) -> tuple[bool, str]:
     Retorna (sucesso, motivo da falha).
     """
     if not path.exists():
-        return False, "o arquivo não está mais nesse caminho"
+        return False, tr("error.file_gone")
 
     try:
         if sys.platform.startswith("win"):
@@ -577,7 +600,7 @@ def open_in_player(path: Path) -> tuple[bool, str]:
         launcher = "open" if sys.platform == "darwin" else "xdg-open"
         executable = shutil.which(launcher)
         if executable is None:
-            return False, f"`{launcher}` não foi encontrado no sistema"
+            return False, tr("error.launcher_missing", launcher=launcher)
 
         subprocess.Popen(
             [executable, str(path)],

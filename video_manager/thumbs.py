@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
+from .i18n import tr
 from .library import thumb_output_name
 
 
@@ -62,13 +63,13 @@ def extract_sheet(video_path: Path, output_dir: Path, opts: ThumbOptions) -> Thu
 
         cap = cv2.VideoCapture(str(video_path))
         if not cap.isOpened():
-            return ThumbResult(video_path, False, "não foi possível abrir o vídeo")
+            return ThumbResult(video_path, False, tr("error.thumb.open"))
 
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = cap.get(cv2.CAP_PROP_FPS) or 0.0
         if total_frames <= 0 or fps <= 0:
             cap.release()
-            return ThumbResult(video_path, False, "metadados inválidos (frames/fps)")
+            return ThumbResult(video_path, False, tr("error.thumb.metadata"))
 
         duration = total_frames / fps
         start_time = duration * opts.margin
@@ -85,7 +86,7 @@ def extract_sheet(video_path: Path, output_dir: Path, opts: ThumbOptions) -> Thu
             ret, first_frame = cap.read()
             if not ret:
                 cap.release()
-                return ThumbResult(video_path, False, "não foi possível ler frames")
+                return ThumbResult(video_path, False, tr("error.thumb.frames"))
 
         fh, fw = first_frame.shape[:2]
         aspect_ratio = fw / fh if fh > 0 else 16 / 9

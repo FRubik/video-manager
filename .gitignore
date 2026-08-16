@@ -9,11 +9,13 @@ __pycache__/
 build/
 dist/
 
-# editores
+# editores e ferramentas
 .vscode/
 .idea/
+.ruff_cache/
 
 # estado local do app (nunca deve ir para o repositório)
 config.json
 .video_manager_state.json
+.video_manager_session.json
 _movimentos.jsonl
