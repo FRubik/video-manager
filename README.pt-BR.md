@@ -59,6 +59,11 @@ No Wayland isso não é opcional: lá o ícone da barra de tarefas vem do arquiv
 `.desktop`, casado com a janela pelo app id — sem esse passo a janela fica com o
 ícone genérico do compositor, não importa o que o programa defina.
 
+Pular esse passo não quebra nada — o programa roda igual, e sem reclamar: o nome
+do `.desktop` só é declarado quando o arquivo existe de fato, porque anunciar um
+que não existe faz o portal do freedesktop imprimir um erro
+`Could not register app ID` a cada abertura.
+
 ## Executar sem instalar
 
 Dentro da pasta do projeto:

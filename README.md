@@ -60,6 +60,11 @@ It matters on Wayland: there the taskbar icon comes from the `.desktop` file,
 matched to the window by app id, so without this step the window keeps the
 compositor's generic icon no matter what the app sets.
 
+Skipping it is fine — the app runs the same, and it stays quiet about it: the
+desktop file name is only declared when the file is actually there, because
+claiming one that does not exist makes the freedesktop portal print a
+`Could not register app ID` error on every start.
+
 ## Running without installing
 
 From inside the project folder:

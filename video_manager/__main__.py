@@ -7,13 +7,17 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from .app import MainWindow
-from .icons import DESKTOP_FILE_NAME, app_icon
+from .icons import DESKTOP_FILE_NAME, app_icon, desktop_entry_installed
 
 
 def main() -> int:
     # antes do QApplication: no Wayland é o app_id que o compositor usa para
-    # casar a janela com o .desktop, e ele é lido na criação da aplicação
-    QApplication.setDesktopFileName(DESKTOP_FILE_NAME)
+    # casar a janela com o .desktop, e ele é lido na criação da aplicação.
+    # Só declara o nome quando o arquivo existe: apontar para um .desktop
+    # ausente faz o portal do freedesktop reclamar no stderr sem que haja o
+    # que consertar em tempo de execução (veja packaging/).
+    if desktop_entry_installed():
+        QApplication.setDesktopFileName(DESKTOP_FILE_NAME)
 
     app = QApplication(sys.argv)
     # nome do processo/janela no sistema: fica igual em qualquer idioma
