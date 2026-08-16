@@ -25,13 +25,31 @@ _current = FALLBACK
 
 
 def detect_language() -> str:
-    """Idioma do sistema, se for um dos suportados."""
+    """Idioma do sistema, se for um dos suportados.
+
+    O `QLocale` vem primeiro porque normaliza os três sistemas: o `locale` da
+    biblioteca padrão devolve `Portuguese_Brazil` no Windows, e nada de útil
+    quando o processo está no locale "C".
+    """
+    for code in (_qt_locale(), _stdlib_locale()):
+        prefix = code.replace("-", "_").split("_")[0].lower()
+        if prefix in LANGUAGES:
+            return prefix
+    return FALLBACK
+
+
+def _qt_locale() -> str:
+    # importado aqui dentro: `i18n` é carregado antes da interface existir
+    from PySide6.QtCore import QLocale
+
+    return QLocale.system().name()
+
+
+def _stdlib_locale() -> str:
     try:
-        code = locale.getlocale()[0] or ""
+        return locale.getlocale()[0] or ""
     except ValueError:
-        code = ""
-    prefix = code.replace("-", "_").split("_")[0].lower()
-    return prefix if prefix in LANGUAGES else FALLBACK
+        return ""
 
 
 def set_language(code: str | None) -> str:
