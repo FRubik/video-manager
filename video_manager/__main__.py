@@ -11,7 +11,8 @@ from .app import MainWindow
 
 def main() -> int:
     app = QApplication(sys.argv)
-    app.setApplicationName("Gerenciador de Vídeos")
+    # nome do processo/janela no sistema: fica igual em qualquer idioma
+    app.setApplicationName("Video Manager")
     window = MainWindow()
     window.show()
     return app.exec()

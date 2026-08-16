@@ -13,6 +13,9 @@ CONFIG_PATH = Path.home() / ".config" / "video_manager" / "config.json"
 
 @dataclass
 class Config:
+    #: idioma da interface ("pt", "en"); vazio significa seguir o do sistema
+    language: str = ""
+
     # pastas
     videos_dir: str = ""
     thumbs_dir: str = ""

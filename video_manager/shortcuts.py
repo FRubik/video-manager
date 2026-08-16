@@ -10,26 +10,32 @@ from dataclasses import dataclass, field
 
 from PySide6.QtGui import QKeySequence
 
+from .i18n import tr
+
 
 @dataclass(frozen=True)
 class Action:
     #: identificador usado como chave na config
     key: str
-    label: str
     default: str
     #: atalhos adicionais, não editáveis
     extra: tuple[str, ...] = field(default=())
 
+    @property
+    def label(self) -> str:
+        """Rótulo no idioma corrente — resolvido a cada leitura, não na criação."""
+        return tr(f"action.{self.key}")
+
 
 #: teclas agrupadas à esquerda do teclado, para operar com uma mão só
 ACTIONS: tuple[Action, ...] = (
-    Action("prev", "Vídeo anterior", "A", ("Left",)),
-    Action("next", "Próximo vídeo", "D", ("Right", "Space")),
-    Action("keep", "Manter", "E"),
-    Action("maybe", "Talvez", "W"),
-    Action("delete", "Excluir", "Q", ("Del",)),
-    Action("open", "Abrir no player", "G"),
-    Action("zoom", "Zoom 1:1", "Z"),
+    Action("prev", "A", ("Left",)),
+    Action("next", "D", ("Right", "Space")),
+    Action("keep", "E"),
+    Action("maybe", "W"),
+    Action("delete", "Q", ("Del",)),
+    Action("open", "G"),
+    Action("zoom", "Z"),
 )
 
 #: aplicar a sessão nunca é remapeável: é a única ação destrutiva imediata
@@ -70,5 +76,5 @@ def describe(mapping: dict[str, str]) -> str:
         keys = [mapping.get(action.key, "")] + [canonical(e) for e in action.extra]
         keys = [k for k in keys if k]
         parts.append(f"{'/'.join(keys)} {action.label.lower()}")
-    parts.append("Enter aplica")
+    parts.append(tr("shortcuts.apply_hint"))
     return " · ".join(parts)

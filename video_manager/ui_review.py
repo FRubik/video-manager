@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import library, shortcuts
+from .i18n import tr
 from .library import DELETE, KEEP, MAYBE, ReviewState, VideoEntry
 
 COLOR_KEEP = "#2e7d32"
@@ -45,13 +46,13 @@ class ImageViewer(QScrollArea):
     def set_image(self, path: Path | None) -> None:
         if path is None or not path.exists():
             self._pixmap = None
-            self._label.setText("Sem thumbnail para este vídeo")
+            self._label.setText(tr("review.no_thumb"))
             self._label.setStyleSheet("background: #111; color: #bbb;")
         else:
             pixmap = QPixmap(str(path))
             self._pixmap = None if pixmap.isNull() else pixmap
             if self._pixmap is None:
-                self._label.setText("Não foi possível carregar a imagem")
+                self._label.setText(tr("review.bad_image"))
         self._fit = True
         self._render()
 
@@ -113,6 +114,8 @@ class ReviewView(QWidget):
         # WidgetWithChildren) cheguem até ela
         self.setFocusPolicy(Qt.StrongFocus)
         self._shortcuts: list[QShortcut] = []
+        #: teclas em vigor, guardadas para reescrever os rótulos ao trocar de idioma
+        self._key_bindings: dict[str, str] = dict(shortcuts.DEFAULTS)
         self._build_ui()
         self.apply_key_bindings(shortcuts.DEFAULTS)
 
@@ -158,18 +161,16 @@ class ReviewView(QWidget):
         root.addWidget(self.volume_label)
 
         buttons = QHBoxLayout()
-        self.prev_button = QPushButton("Anterior")
-        self.next_button = QPushButton("Próximo")
-        self.keep_button = QPushButton("Manter")
-        self.maybe_button = QPushButton("Talvez")
-        self.delete_button = QPushButton("Apagar")
-        self.open_button = QPushButton("Abrir vídeo")
-        self.save_button = QPushButton("Salvar e sair")
-        self.save_button.setToolTip(
-            "Guarda esta sessão como está — decisões e posição — para retomar depois.\n"
-            "Nada é movido agora."
-        )
-        self.finish_button = QPushButton("Aplicar e finalizar")
+        # os seis primeiros têm o texto escrito em `apply_key_bindings`, que
+        # precisa carimbar a tecla atual de cada ação
+        self.prev_button = QPushButton()
+        self.next_button = QPushButton()
+        self.keep_button = QPushButton()
+        self.maybe_button = QPushButton()
+        self.delete_button = QPushButton()
+        self.open_button = QPushButton()
+        self.save_button = QPushButton()
+        self.finish_button = QPushButton()
 
         self.keep_button.setStyleSheet(f"font-weight: 600; color: {COLOR_KEEP};")
         self.maybe_button.setStyleSheet(f"font-weight: 600; color: {COLOR_MAYBE};")
@@ -202,9 +203,17 @@ class ReviewView(QWidget):
         self.hint.setStyleSheet("color: #888; font-size: 11px;")
         root.addWidget(self.hint)
 
+    def retranslate(self) -> None:
+        """Reescreve a tela no idioma corrente, preservando a sessão em curso."""
+        self.apply_key_bindings(self._key_bindings)
+        if self.entries:
+            self.show_current()
+            self.refresh_volume()
+
     def apply_key_bindings(self, key_bindings: dict) -> None:
         """Reinstala os atalhos e reescreve rótulos e dica com as teclas atuais."""
         mapping = shortcuts.normalize(key_bindings)
+        self._key_bindings = mapping
 
         for shortcut in self._shortcuts:
             shortcut.setEnabled(False)
@@ -240,13 +249,19 @@ class ReviewView(QWidget):
         for sequence in shortcuts.APPLY_KEYS:
             add(sequence, self.finish)
 
-        self.prev_button.setText(f"← Anterior ({mapping['prev']})")
-        self.next_button.setText(f"Próximo ({mapping['next']}) →")
-        self.keep_button.setText(f"Manter ({mapping['keep']})")
-        self.maybe_button.setText(f"Talvez ({mapping['maybe']})")
-        self.delete_button.setText(f"Apagar ({mapping['delete']})")
-        self.open_button.setText(f"Abrir vídeo ({mapping['open']})")
-        self.hint.setText(shortcuts.describe(mapping) + " · clique na imagem = zoom")
+        for button, action in (
+            (self.prev_button, "prev"),
+            (self.next_button, "next"),
+            (self.keep_button, "keep"),
+            (self.maybe_button, "maybe"),
+            (self.delete_button, "delete"),
+            (self.open_button, "open"),
+        ):
+            button.setText(tr(f"review.{action}", key=mapping[action]))
+        self.save_button.setText(tr("review.save"))
+        self.save_button.setToolTip(tr("review.save.tip"))
+        self.finish_button.setText(tr("review.finish"))
+        self.hint.setText(shortcuts.describe(mapping) + tr("review.hint.zoom"))
 
     # -------------------------------------------------------------- sessão
     def load_session(
@@ -315,7 +330,7 @@ class ReviewView(QWidget):
     def show_current(self) -> None:
         entry = self.current
         if entry is None:
-            self.name_label.setText("Nenhum vídeo nesta sessão")
+            self.name_label.setText(tr("review.empty"))
             self.viewer.set_image(None)
             self.counter_label.clear()
             self.status_label.clear()
@@ -331,10 +346,17 @@ class ReviewView(QWidget):
         to_delete = sum(1 for e in self.entries if e.decision == DELETE)
         to_keep = sum(1 for e in self.entries if e.decision == KEEP)
         to_maybe = sum(1 for e in self.entries if e.decision == MAYBE)
-        origem = "  ·   veio do “talvez”" if entry.from_maybe else ""
+        origem = tr("review.from_maybe") if entry.from_maybe else ""
         self.info_label.setText(
-            f"{library.format_size(entry.size_bytes)}   ·   manter: {to_keep}   "
-            f"talvez: {to_maybe}   apagar: {to_delete}   pendentes: {pending}{origem}"
+            tr(
+                "review.counts",
+                size=library.format_size(entry.size_bytes),
+                keep=to_keep,
+                maybe=to_maybe,
+                delete=to_delete,
+                pending=pending,
+                origin=origem,
+            )
         )
 
         self.list.blockSignals(True)
@@ -354,27 +376,35 @@ class ReviewView(QWidget):
         altera nenhum desses números.
         """
         stats = self._stats()
-        partes = [f"Pasta: {library.format_size(stats.total_bytes)}"]
+        partes = [tr("review.volume.folder", size=library.format_size(stats.total_bytes))]
 
         marcado = [
-            f"{rotulo} {library.format_size(stats.session_bytes(decisao))}"
-            for decisao, rotulo in ((DELETE, "apagar"), (MAYBE, "talvez"), (KEEP, "manter"))
+            f"{tr(chave)} {library.format_size(stats.session_bytes(decisao))}"
+            for decisao, chave in (
+                (DELETE, "decision.delete"),
+                (MAYBE, "decision.maybe"),
+                (KEEP, "decision.keep"),
+            )
             if stats.session_bytes(decisao)
         ]
         if marcado:
-            partes.append("marcado — " + " · ".join(marcado))
+            partes.append(tr("review.volume.marked", parts=" · ".join(marcado)))
 
         restante = stats.estimated_remaining
         if restante is not None:
             partes.append(
-                f"projeção: ~{library.format_size(restante)} no fim "
-                f"({stats.discard_rate:.0%} do volume decidido vai para a quarentena)"
+                tr(
+                    "review.volume.projection",
+                    size=library.format_size(restante),
+                    rate=library.format_rate(stats.discard_rate),
+                )
             )
         self.volume_label.setText("   ·   ".join(partes))
 
     def _update_status_label(self, entry: VideoEntry) -> None:
-        texto = {DELETE: "● APAGAR", KEEP: "● MANTER", MAYBE: "● TALVEZ"}.get(
-            entry.decision, "○ pendente"
+        texto = tr(
+            {DELETE: "review.status.delete", KEEP: "review.status.keep",
+             MAYBE: "review.status.maybe"}.get(entry.decision, "review.status.pending")
         )
         cor = {DELETE: COLOR_DELETE, KEEP: COLOR_KEEP, MAYBE: COLOR_MAYBE}.get(
             entry.decision, COLOR_PENDING
@@ -437,8 +467,13 @@ class ReviewView(QWidget):
         if not ok:
             QMessageBox.warning(
                 self,
-                "Não foi possível abrir o vídeo",
-                f"{entry.name}\n\n{reason}\n\nCaminho:\n{entry.video}",
+                tr("review.open.failed.title"),
+                tr(
+                    "review.open.failed.body",
+                    name=entry.name,
+                    reason=reason,
+                    path=entry.video,
+                ),
             )
 
     def _offer_finish(self) -> None:
@@ -447,11 +482,15 @@ class ReviewView(QWidget):
         to_maybe = stats.session_count(MAYBE)
         answer = QMessageBox.question(
             self,
-            "Fim da sessão",
-            f"Você revisou todos os {len(self.entries)} vídeos desta sessão.\n"
-            f"{to_delete} para apagar ({library.format_size(stats.session_bytes(DELETE))}) · "
-            f"{to_maybe} para rever depois ({library.format_size(stats.session_bytes(MAYBE))})."
-            "\n\nAplicar agora?",
+            tr("review.end.title"),
+            tr(
+                "review.end.body",
+                total=len(self.entries),
+                delete=to_delete,
+                delete_size=library.format_size(stats.session_bytes(DELETE)),
+                maybe=to_maybe,
+                maybe_size=library.format_size(stats.session_bytes(MAYBE)),
+            ),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.Yes,
         )
@@ -493,10 +532,8 @@ class ReviewView(QWidget):
         decididos = sum(1 for e in self.entries if e.decision is not None)
         QMessageBox.information(
             self,
-            "Sessão salva",
-            f"{len(self.entries)} vídeo(s) guardados, {decididos} já decidido(s).<br><br>"
-            "Nada foi movido. A tela inicial oferece <b>Retomar</b> enquanto esta "
-            "sessão existir.",
+            tr("review.saved.title"),
+            tr("review.saved.body", total=len(self.entries), decided=decididos),
         )
         self.session_saved.emit()
 
@@ -526,21 +563,28 @@ class ReviewView(QWidget):
             return
 
         linhas = []
-        for destino, rotulo in (
-            (self.trash_dir, "apagar"),
-            (self.maybe_dir, "rever depois"),
-            (self.videos_dir, "voltar para a pasta de vídeos"),
+        for destino, chave in (
+            (self.trash_dir, "review.confirm.to_delete"),
+            (self.maybe_dir, "review.confirm.to_maybe"),
+            (self.videos_dir, "review.confirm.to_videos"),
         ):
             movidos = [entry for entry, dest, _ in plano if dest == destino]
             if movidos:
-                volume = library.format_size(sum(e.size_bytes for e in movidos))
-                linhas.append(f"• {len(movidos)} vídeo(s) — {volume} — {rotulo}:\n    {destino}")
+                linhas.append(
+                    tr(
+                        "review.confirm.line",
+                        count=len(movidos),
+                        size=library.format_size(sum(e.size_bytes for e in movidos)),
+                        reason=tr(chave),
+                        dest=destino,
+                    )
+                )
 
         if linhas:
             answer = QMessageBox.question(
                 self,
-                "Confirmar movimentações",
-                "\n".join(linhas) + "\n\nAs thumbnails permanecem onde estão.",
+                tr("review.confirm.title"),
+                "\n".join(linhas) + tr("review.confirm.footer"),
                 QMessageBox.Yes | QMessageBox.Cancel,
                 QMessageBox.Yes,
             )
@@ -580,22 +624,24 @@ class ReviewView(QWidget):
             "quarentena": str(self.trash_dir),
         }
 
-        def linha(quantos: int, bytes_: int, texto: str) -> str:
-            return f"<b>{quantos}</b> vídeo(s) — {library.format_size(bytes_)} — {texto}"
+        def linha(quantos: int, bytes_: int, chave: str) -> str:
+            return tr(
+                "review.done.line",
+                count=quantos,
+                size=library.format_size(bytes_),
+                text=tr(chave),
+            )
 
         message = "<br>".join((
-            linha(contagem[DELETE], volume[DELETE], "movido(s) para a quarentena"),
-            linha(contagem[MAYBE], volume[MAYBE], "guardado(s) para rever depois"),
-            linha(contagem[KEEP], volume[KEEP], "mantido(s) e registrado(s) como revisados"),
+            linha(contagem[DELETE], volume[DELETE], "review.done.deleted"),
+            linha(contagem[MAYBE], volume[MAYBE], "review.done.maybe"),
+            linha(contagem[KEEP], volume[KEEP], "review.done.kept"),
         ))
         restante = self._stats().estimated_remaining
         if restante is not None:
-            message += (
-                "<br><br>No ritmo atual de descarte, a pasta deve estabilizar em "
-                f"<b>{library.format_size(restante)}</b>."
-            )
+            message += tr("review.done.projection", size=library.format_size(restante))
         if errors:
-            message += "<br><br><b>Falhas:</b><br>" + "<br>".join(errors[:10])
-        QMessageBox.information(self, "Sessão concluída", message)
+            message += tr("review.done.errors") + "<br>".join(errors[:10])
+        QMessageBox.information(self, tr("review.done.title"), message)
 
         self.session_finished.emit(summary)
