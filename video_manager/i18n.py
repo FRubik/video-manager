@@ -450,12 +450,12 @@ STRINGS: dict[str, dict[str, str]] = {
     "review.maybe": {"pt": "Talvez ({key})", "en": "Maybe ({key})"},
     "review.delete": {"pt": "Apagar ({key})", "en": "Delete ({key})"},
     "review.open": {"pt": "Abrir vídeo ({key})", "en": "Open video ({key})"},
-    "review.save": {"pt": "Salvar e sair", "en": "Save and leave"},
-    "review.save.tip": {
-        "pt": "Guarda esta sessão como está — decisões e posição — para retomar depois.\n"
-              "Nada é movido agora.",
-        "en": "Stores this session as it is — decisions and position — to resume later.\n"
-              "Nothing is moved now.",
+    "review.back": {"pt": "◀ Voltar", "en": "◀ Back"},
+    "review.back.tip": {
+        "pt": "Volta para a tela inicial sem mover nada.\n"
+              "As decisões e a posição já estão guardadas: dá para retomar depois.",
+        "en": "Goes back to the start screen without moving anything.\n"
+              "The decisions and the position are already stored: you can resume later.",
     },
     "review.finish": {"pt": "Aplicar e finalizar", "en": "Apply and finish"},
     "review.hint.zoom": {"pt": " · clique na imagem = zoom", "en": " · click the image = zoom"},
@@ -496,15 +496,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "You reviewed all {total} videos in this session.\n"
               "{delete} to delete ({delete_size}) · "
               "{maybe} to review later ({maybe_size}).\n\nApply now?",
-    },
-    "review.saved.title": {"pt": "Sessão salva", "en": "Session saved"},
-    "review.saved.body": {
-        "pt": "{total} vídeo(s) guardados, {decided} já decidido(s).<br><br>"
-              "Nada foi movido. A tela inicial oferece <b>Retomar</b> enquanto esta "
-              "sessão existir.",
-        "en": "{total} video(s) stored, {decided} already decided.<br><br>"
-              "Nothing was moved. The start screen offers <b>Resume</b> for as long as "
-              "this session exists.",
     },
     "review.confirm.title": {"pt": "Confirmar movimentações", "en": "Confirm the moves"},
     "review.confirm.line": {

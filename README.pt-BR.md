@@ -159,7 +159,7 @@ fica salva no `config.json`. As alternativas da tabela (`←`, `→`, `Espaço`,
 
 Nada é movido enquanto você decide — as marcações só são aplicadas em **Aplicar e
 finalizar** (ou no fim da sessão, que pergunta), sempre com confirmação. Ao lado
-dele, **Salvar e sair** guarda a sessão para outro dia sem mover nada.
+dele, **Voltar** devolve você à tela inicial sem mover nada.
 
 ### 3. O "talvez"
 
@@ -238,10 +238,10 @@ faz exatamente isso sem exigir que você lembre do `Enter`.
 
 **Guardar a sessão inteira.** É o que a *verificação randômica* pede: aplicar no
 meio encerra aquele sorteio, e os vídeos que você ainda não viu voltam para o
-bolo — talvez nunca mais caindo juntos. **Salvar e sair** congela a sessão como
-ela está: a lista sorteada, as marcações que você já fez e a posição em que
-parou. Na próxima abertura, **Retomar** devolve tudo, inclusive as cores na
-lista lateral, e você segue do vídeo seguinte ao último decidido.
+bolo — talvez nunca mais caindo juntos. **Voltar** sai da revisão deixando a
+sessão congelada como ela está: a lista sorteada, as marcações que você já fez e
+a posição em que parou. Na próxima abertura, **Retomar** devolve tudo, inclusive
+as cores na lista lateral, e você segue do vídeo seguinte ao último decidido.
 
 Não é preciso lembrar de salvar: **cada decisão grava a sessão em disco**. Se o
 programa morrer, a máquina desligar ou você fechar a janela no susto, a sessão

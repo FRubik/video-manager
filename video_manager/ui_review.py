@@ -90,7 +90,7 @@ class ImageViewer(QScrollArea):
 
 class ReviewView(QWidget):
     session_finished = Signal(dict)
-    session_saved = Signal()
+    back_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -164,7 +164,7 @@ class ReviewView(QWidget):
         self.maybe_button = QPushButton()
         self.delete_button = QPushButton()
         self.open_button = QPushButton()
-        self.save_button = QPushButton()
+        self.back_button = QPushButton()
         self.finish_button = QPushButton()
 
         self.keep_button.setStyleSheet(f"font-weight: 600; color: {COLOR_KEEP};")
@@ -177,7 +177,7 @@ class ReviewView(QWidget):
         self.maybe_button.clicked.connect(lambda: self.decide(MAYBE))
         self.delete_button.clicked.connect(lambda: self.decide(DELETE))
         self.open_button.clicked.connect(self.open_current_video)
-        self.save_button.clicked.connect(self.save_and_exit)
+        self.back_button.clicked.connect(self.go_back)
         self.finish_button.clicked.connect(self.finish)
 
         buttons.addWidget(self.prev_button)
@@ -189,7 +189,7 @@ class ReviewView(QWidget):
         buttons.addSpacing(20)
         buttons.addWidget(self.open_button)
         buttons.addStretch()
-        buttons.addWidget(self.save_button)
+        buttons.addWidget(self.back_button)
         buttons.addWidget(self.finish_button)
         root.addLayout(buttons)
 
@@ -253,8 +253,8 @@ class ReviewView(QWidget):
             (self.open_button, "open"),
         ):
             button.setText(tr(f"review.{action}", key=mapping[action]))
-        self.save_button.setText(tr("review.save"))
-        self.save_button.setToolTip(tr("review.save.tip"))
+        self.back_button.setText(tr("review.back"))
+        self.back_button.setToolTip(tr("review.back.tip"))
         self.finish_button.setText(tr("review.finish"))
         self.hint.setText(shortcuts.describe(mapping) + tr("review.hint.zoom"))
 
@@ -521,16 +521,14 @@ class ReviewView(QWidget):
         self._applied = True
         library.clear_session(self.thumbs_dir)
 
-    def save_and_exit(self) -> None:
-        """Guarda a sessão como está e volta para a tela inicial."""
+    def go_back(self) -> None:
+        """Volta para a tela inicial sem mover nada.
+
+        Não há o que confirmar: o autosave já gravou cada decisão no disco, e a
+        tela inicial oferece "Retomar" enquanto a sessão existir.
+        """
         self.autosave()
-        decididos = sum(1 for e in self.entries if e.decision is not None)
-        QMessageBox.information(
-            self,
-            tr("review.saved.title"),
-            tr("review.saved.body", total=len(self.entries), decided=decididos),
-        )
-        self.session_saved.emit()
+        self.back_requested.emit()
 
     # -------------------------------------------------------------- aplicar
     def has_pending_changes(self) -> bool:
