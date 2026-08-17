@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
         self.setup_view.key_bindings_changed.connect(self.review_view.apply_key_bindings)
         self.setup_view.language_changed.connect(self.on_language_changed)
         self.review_view.session_finished.connect(self.on_session_finished)
-        self.review_view.session_saved.connect(self.on_session_saved)
+        self.review_view.back_requested.connect(self.on_back_requested)
 
         self._worker: ThumbWorker | None = None
         self._progress: QProgressDialog | None = None
@@ -299,7 +299,7 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.setup_view)
         self.setup_view.refresh_summary()
 
-    def on_session_saved(self) -> None:
+    def on_back_requested(self) -> None:
         self.stack.setCurrentWidget(self.setup_view)
         self.setup_view.refresh_summary()
 

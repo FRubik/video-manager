@@ -162,8 +162,7 @@ the choice is saved in `config.json`. The alternatives in the table (`←`, `→
 
 Nothing is moved while you decide — the marks are only applied on **Apply and
 finish** (or at the end of the session, which asks), always with a confirmation.
-Next to it, **Save and leave** stores the session for another day without moving
-anything.
+Next to it, **Back** returns you to the start screen without moving anything.
 
 ### 3. The "maybe"
 
@@ -243,10 +242,11 @@ already seen doesn't come back. Closing the window with pending decisions offers
 
 **Store the whole session.** That's what the *random check* calls for: applying
 halfway ends that draw, and the videos you haven't seen go back into the pot —
-maybe never landing together again. **Save and leave** freezes the session as it
-stands: the drawn list, the marks you already made and the position you stopped
-at. Next time you open the app, **Resume** gives it all back, colours in the side
-list included, and you carry on from the video after the last one decided.
+maybe never landing together again. **Back** leaves the review with the session
+frozen as it stands: the drawn list, the marks you already made and the position
+you stopped at. Next time you open the app, **Resume** gives it all back, colours
+in the side list included, and you carry on from the video after the last one
+decided.
 
 You don't have to remember to save: **each decision writes the session to disk**.
 If the program dies, the machine shuts down or you close the window in a panic,
