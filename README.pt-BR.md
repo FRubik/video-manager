@@ -103,11 +103,11 @@ pasta que você já tem.
 
 ### 1. Tela inicial
 
-- **Pastas**: vídeos, thumbnails, descartes (`<pasta de vídeos>/_para_apagar`) e
-  *talvez* (`<pasta de vídeos>/_talvez`). As duas últimas são preenchidas
-  sozinhas e acompanham a troca da pasta de vídeos enquanto estiverem no valor
-  padrão; o botão **Padrão** ao lado de cada uma refaz o caminho a qualquer
-  momento, e nada impede apontar para outro lugar.
+- **Pastas**: vídeos, thumbnails (`<pasta de vídeos>/thumbs`), descartes
+  (`<pasta de vídeos>/_para_apagar`) e *talvez* (`<pasta de vídeos>/_talvez`). As
+  três últimas são preenchidas sozinhas e acompanham a troca da pasta de vídeos
+  enquanto estiverem no valor padrão; o botão **Padrão** ao lado de cada uma
+  refaz o caminho a qualquer momento, e nada impede apontar para outro lugar.
 - **Gerar thumbnails**: desmarcado, o programa vai direto para a revisão usando as
   thumbs existentes. Marcado, gera antes — com a opção *somente vídeos que ainda
   não têm thumbnail*, que é o caso comum quando você adiciona vídeos novos.
