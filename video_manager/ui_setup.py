@@ -130,6 +130,9 @@ class SetupView(QWidget):
         self.trash_label = QLabel()
         self.maybe_folder_label = QLabel()
         folders_form.addRow(self.videos_label, self.videos_picker)
+        self.thumbs_default_button = self.thumbs_picker.add_button(
+            lambda: self._use_default(self.thumbs_picker, library.default_thumbs_dir),
+        )
         folders_form.addRow(self.thumbs_label, self.thumbs_picker)
         self.trash_default_button = self.trash_picker.add_button(
             lambda: self._use_default(self.trash_picker, library.default_trash_dir),
@@ -310,13 +313,14 @@ class SetupView(QWidget):
 
         # --- pastas ---
         self.folders_group.setTitle(tr("setup.folders"))
+        thumbs_name = library.default_thumbs_dir_name()
         trash_name = library.default_trash_dir_name()
         maybe_name = library.default_maybe_dir_name()
         for picker, label, label_key, hint_key, hint_name in (
             (self.videos_picker, self.videos_label,
              "setup.folders.videos", "setup.folders.videos.hint", None),
             (self.thumbs_picker, self.thumbs_label,
-             "setup.folders.thumbs", "setup.folders.thumbs.hint", None),
+             "setup.folders.thumbs", "setup.folders.thumbs.hint", thumbs_name),
             (self.trash_picker, self.trash_label,
              "setup.folders.trash", "setup.folders.trash.hint", trash_name),
             (self.maybe_picker, self.maybe_folder_label,
@@ -327,6 +331,10 @@ class SetupView(QWidget):
                 tr(hint_key) if hint_name is None else tr(hint_key, name=hint_name)
             )
             picker.retranslate()
+        self.thumbs_default_button.setText(tr("common.default"))
+        self.thumbs_default_button.setToolTip(
+            tr("setup.folders.thumbs.default.tip", name=thumbs_name)
+        )
         self.trash_default_button.setText(tr("common.default"))
         self.trash_default_button.setToolTip(
             tr("setup.folders.trash.default.tip", name=trash_name)
@@ -429,6 +437,7 @@ class SetupView(QWidget):
         # config de uma versão anterior não traz as pastas novas
         if c.videos_dir:
             for picker, default_for in (
+                (self.thumbs_picker, library.default_thumbs_dir),
                 (self.trash_picker, library.default_trash_dir),
                 (self.maybe_picker, library.default_maybe_dir),
             ):
@@ -496,6 +505,7 @@ class SetupView(QWidget):
     def _on_videos_changed(self) -> None:
         if self.videos_picker.text():
             for picker, default_for, candidates_for in (
+                (self.thumbs_picker, library.default_thumbs_dir, library.thumbs_dir_candidates),
                 (self.trash_picker, library.default_trash_dir, library.trash_dir_candidates),
                 (self.maybe_picker, library.default_maybe_dir, library.maybe_dir_candidates),
             ):
@@ -508,6 +518,7 @@ class SetupView(QWidget):
         videos_dir = self.videos_picker.path()
         thumbs_dir = self.thumbs_picker.path()
         has_videos_dir = bool(self.videos_picker.text())
+        self.thumbs_default_button.setEnabled(has_videos_dir)
         self.trash_default_button.setEnabled(has_videos_dir)
         self.maybe_default_button.setEnabled(has_videos_dir)
         self._refresh_saved_session()

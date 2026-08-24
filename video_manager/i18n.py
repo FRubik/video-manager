@@ -121,8 +121,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "folder holding the videos",
     },
     "setup.folders.thumbs.hint": {
-        "pt": "pasta onde ficam/serão salvas as thumbs",
-        "en": "folder where the thumbnails are (or will be) saved",
+        "pt": "pasta onde ficam/serão salvas as thumbs (padrão: <vídeos>/{name})",
+        "en": "folder where the thumbnails are (or will be) saved (default: <videos>/{name})",
     },
     "setup.folders.trash.hint": {
         "pt": "quarentena (padrão: <vídeos>/{name})",
@@ -131,6 +131,10 @@ STRINGS: dict[str, dict[str, str]] = {
     "setup.folders.maybe.hint": {
         "pt": "rever depois (padrão: <vídeos>/{name})",
         "en": "review later (default: <videos>/{name})",
+    },
+    "setup.folders.thumbs.default.tip": {
+        "pt": "Apontar as thumbnails para <pasta de vídeos>/{name}",
+        "en": "Point the thumbnails at <videos folder>/{name}",
     },
     "setup.folders.trash.default.tip": {
         "pt": "Apontar a quarentena para <pasta de vídeos>/{name}",

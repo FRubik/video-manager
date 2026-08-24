@@ -529,6 +529,8 @@ def _log_move(dest_dir: Path, origin: Path, dest: Path, motivo: str) -> None:
 #: existe — por isso `*_dir_candidates` reconhece todos eles, e não só o atual.
 TRASH_DIR_NAMES: dict[str, str] = {"pt": "_para_apagar", "en": "_to_delete"}
 MAYBE_DIR_NAMES: dict[str, str] = {"pt": "_talvez", "en": "_maybe"}
+#: "thumbs" já é o termo usado nos dois idiomas, sem tradução própria
+THUMBS_DIR_NAMES: dict[str, str] = {"pt": "thumbs", "en": "thumbs"}
 
 
 def default_trash_dir_name() -> str:
@@ -539,12 +541,20 @@ def default_maybe_dir_name() -> str:
     return MAYBE_DIR_NAMES.get(i18n.current_language(), MAYBE_DIR_NAMES["en"])
 
 
+def default_thumbs_dir_name() -> str:
+    return THUMBS_DIR_NAMES.get(i18n.current_language(), THUMBS_DIR_NAMES["en"])
+
+
 def default_trash_dir(videos_dir: Path) -> Path:
     return videos_dir / default_trash_dir_name()
 
 
 def default_maybe_dir(videos_dir: Path) -> Path:
     return videos_dir / default_maybe_dir_name()
+
+
+def default_thumbs_dir(videos_dir: Path) -> Path:
+    return videos_dir / default_thumbs_dir_name()
 
 
 def trash_dir_candidates(videos_dir: Path) -> set[Path]:
@@ -554,6 +564,10 @@ def trash_dir_candidates(videos_dir: Path) -> set[Path]:
 
 def maybe_dir_candidates(videos_dir: Path) -> set[Path]:
     return {videos_dir / name for name in MAYBE_DIR_NAMES.values()}
+
+
+def thumbs_dir_candidates(videos_dir: Path) -> set[Path]:
+    return {videos_dir / name for name in THUMBS_DIR_NAMES.values()}
 
 
 #: variáveis que o OpenCV reescreve e que envenenam qualquer app Qt filho

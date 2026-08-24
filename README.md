@@ -105,11 +105,11 @@ you already have.
 
 ### 1. Start screen
 
-- **Folders**: videos, thumbnails, discards (`<videos folder>/_to_delete`) and
-  *maybe* (`<videos folder>/_maybe`). The last two fill themselves in and follow
-  the videos folder around for as long as they hold the default value; the
-  **Default** button next to each one rebuilds the path at any time, and nothing
-  stops you from pointing them somewhere else.
+- **Folders**: videos, thumbnails (`<videos folder>/thumbs`), discards
+  (`<videos folder>/_to_delete`) and *maybe* (`<videos folder>/_maybe`). The last
+  three fill themselves in and follow the videos folder around for as long as
+  they hold the default value; the **Default** button next to each one rebuilds
+  the path at any time, and nothing stops you from pointing them somewhere else.
 - **Generate thumbnails**: unchecked, the app goes straight to the review screen
   using existing thumbnails. Checked, it generates first — with the *only videos
   that have no thumbnail yet* option, which is the common case when you add new
