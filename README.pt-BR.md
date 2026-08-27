@@ -108,9 +108,20 @@ pasta que você já tem.
   três últimas são preenchidas sozinhas e acompanham a troca da pasta de vídeos
   enquanto estiverem no valor padrão; o botão **Padrão** ao lado de cada uma
   refaz o caminho a qualquer momento, e nada impede apontar para outro lugar.
-- **Gerar thumbnails**: desmarcado, o programa vai direto para a revisão usando as
+- **Gerar thumbnails**: desmarcado, **Iniciar** vai direto para a revisão usando as
   thumbs existentes. Marcado, gera antes — com a opção *somente vídeos que ainda
-  não têm thumbnail*, que é o caso comum quando você adiciona vídeos novos.
+  não têm thumbnail*, que é o caso comum quando você adiciona vídeos novos, e
+  também quando uma geração parou no meio: só o que ficou faltando é refeito.
+- **Somente gerar thumbnails**: o botão ao lado de *Iniciar* gera e volta para a
+  tela inicial, sem abrir a revisão — para preparar uma pasta agora e triar
+  depois. Ele obedece às mesmas opções do quadro acima e não mexe em nenhuma
+  sessão guardada.
+
+O andamento da geração é contado em frames, e não em vídeos: um 4K de vários GB
+leva minutos sozinho, e uma barra que só se mexe quando o vídeo inteiro termina
+parece travada. **Cancelar** interrompe o vídeo em curso no frame seguinte; o
+que já foi gerado fica salvo, e rodar de novo com *somente vídeos que ainda não
+têm thumbnail* retoma de onde parou.
 - **Sessão de revisão**:
   - *Revisar todos* — passa por tudo que tem thumbnail;
   - *Verificação randômica* — sorteia N vídeos e a sessão termina neles, para

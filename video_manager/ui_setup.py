@@ -83,6 +83,8 @@ class FolderPicker(QWidget):
 
 class SetupView(QWidget):
     start_requested = Signal(Config)
+    #: gerar as thumbnails e ficar nesta tela, sem abrir a revisão
+    generate_requested = Signal(Config)
     resume_requested = Signal(Config)
     key_bindings_changed = Signal(dict)
     language_changed = Signal(str)
@@ -292,6 +294,9 @@ class SetupView(QWidget):
         self.rescan_button.clicked.connect(self.refresh_summary)
         self.shortcuts_button = QPushButton()
         self.shortcuts_button.clicked.connect(self._edit_shortcuts)
+        self.generate_button = QPushButton()
+        self.generate_button.setMinimumWidth(140)
+        self.generate_button.clicked.connect(self._emit_generate)
         self.start_button = QPushButton()
         self.start_button.setDefault(True)
         self.start_button.setMinimumWidth(140)
@@ -299,6 +304,7 @@ class SetupView(QWidget):
         actions.addWidget(self.rescan_button)
         actions.addWidget(self.shortcuts_button)
         actions.addStretch()
+        actions.addWidget(self.generate_button)
         actions.addWidget(self.start_button)
         root.addLayout(actions)
 
@@ -353,6 +359,7 @@ class SetupView(QWidget):
         self.gen_group.setTitle(tr("setup.gen"))
         self.gen_group.setToolTip(tr("setup.gen.tip"))
         self.only_missing.setText(tr("setup.gen.only_missing"))
+        self.only_missing.setToolTip(tr("setup.gen.only_missing.tip"))
         self.grid_label.setText(tr("setup.gen.grid"))
         self.rows_label.setText(tr("setup.gen.rows"))
         self.cols_label.setText(tr("setup.gen.cols"))
@@ -390,6 +397,8 @@ class SetupView(QWidget):
         self.rescan_button.setText(tr("setup.rescan"))
         self.shortcuts_button.setText(tr("setup.shortcuts"))
         self.shortcuts_button.setToolTip(tr("setup.shortcuts.tip"))
+        self.generate_button.setText(tr("setup.generate"))
+        self.generate_button.setToolTip(tr("setup.generate.tip"))
         self.start_button.setText(tr("setup.start"))
 
         # os textos dinâmicos (resumo, volume, sessão salva) vêm daqui
@@ -533,6 +542,7 @@ class SetupView(QWidget):
         if not has_videos_dir or not videos_dir.is_dir():
             self.summary.setText(tr("setup.summary.no_folder"))
             self.volume.clear()
+            self.generate_button.setEnabled(False)
             self.start_button.setEnabled(False)
             self.empty_trash_button.setEnabled(False)
             return
@@ -576,6 +586,8 @@ class SetupView(QWidget):
             lines.append(tr("setup.summary.missing_thumbs"))
         self.summary.setText("<br>".join(lines))
         self._refresh_volume(entries, state)
+        # gerar não depende da sessão: basta haver vídeo na pasta
+        self.generate_button.setEnabled(total > 0)
         self.start_button.setEnabled(total > 0)
 
     def _refresh_volume(
@@ -696,3 +708,6 @@ class SetupView(QWidget):
 
     def _emit_start(self) -> None:
         self.start_requested.emit(self.current_config())
+
+    def _emit_generate(self) -> None:
+        self.generate_requested.emit(self.current_config())

@@ -149,12 +149,20 @@ STRINGS: dict[str, dict[str, str]] = {
     # --------------------------------------------------- tela: thumbnails
     "setup.gen": {"pt": "Gerar thumbnails", "en": "Generate thumbnails"},
     "setup.gen.tip": {
-        "pt": "Desmarcado: abre direto a interface de revisão usando as thumbs já existentes.",
-        "en": "Unchecked: goes straight to the review screen using the existing thumbnails.",
+        "pt": "Desmarcado: “Iniciar” abre direto a revisão usando as thumbs já existentes. "
+              "Para só gerar, use “Somente gerar thumbnails”.",
+        "en": "Unchecked: “Start” goes straight to the review screen using the existing "
+              "thumbnails. To only generate them, use “Generate thumbnails only”.",
     },
     "setup.gen.only_missing": {
         "pt": "Somente vídeos que ainda não têm thumbnail",
         "en": "Only videos that have no thumbnail yet",
+    },
+    "setup.gen.only_missing.tip": {
+        "pt": "Refaz apenas o que falta — útil quando uma geração anterior parou no meio. "
+              "Desmarcado, todas as thumbnails são geradas de novo.",
+        "en": "Only fills the gaps — handy when an earlier run stopped halfway. "
+              "Unchecked, every thumbnail is generated again.",
     },
     "setup.gen.grid": {"pt": "Grade:", "en": "Grid:"},
     "setup.gen.rows": {"pt": "linhas", "en": "rows"},
@@ -353,6 +361,15 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt": "Escolher as teclas usadas na tela de revisão",
         "en": "Choose the keys used on the review screen",
     },
+    "setup.generate": {
+        "pt": "Somente gerar thumbnails",
+        "en": "Generate thumbnails only",
+    },
+    "setup.generate.tip": {
+        "pt": "Gera as thumbnails e volta para esta tela, sem abrir a revisão.",
+        "en": "Generates the thumbnails and comes back to this screen, without opening "
+              "the review.",
+    },
     "setup.start": {"pt": "Iniciar", "en": "Start"},
 
     # ------------------------------------------------------ avisos: início
@@ -384,11 +401,37 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt": "Todos os vídeos já possuem thumbnail. Indo para a revisão.",
         "en": "Every video already has a thumbnail. Going to the review screen.",
     },
+    "app.gen.nothing.body.only": {
+        "pt": "Todos os vídeos já possuem thumbnail.",
+        "en": "Every video already has a thumbnail.",
+    },
+    "app.gen.done.title": {"pt": "Thumbnails geradas", "en": "Thumbnails generated"},
+    "app.gen.done.body": {
+        "pt": "{ok} thumbnail(s) gerada(s) em {folder}.",
+        "en": "{ok} thumbnail(s) generated in {folder}.",
+    },
     "app.gen.progress.title": {"pt": "Processando", "en": "Working"},
     "app.gen.progress.label": {"pt": "Gerando thumbnails…", "en": "Generating thumbnails…"},
     "app.gen.progress.detail": {
-        "pt": "Gerando thumbnails… {done}/{total}\n{name}",
-        "en": "Generating thumbnails… {done}/{total}\n{name}",
+        "pt": "Vídeos: {done}/{total} · frames: {frames}/{frames_total}\n{name}",
+        "en": "Videos: {done}/{total} · frames: {frames}/{frames_total}\n{name}",
+    },
+    "app.gen.progress.waiting": {
+        "pt": "os primeiros vídeos estão sendo lidos…",
+        "en": "reading the first videos…",
+    },
+    "app.gen.cancelling": {
+        "pt": "Cancelando… o vídeo em curso para no próximo frame.",
+        "en": "Cancelling… the video in progress stops at the next frame.",
+    },
+    "app.gen.cancelled.title": {"pt": "Geração cancelada", "en": "Generation cancelled"},
+    "app.gen.cancelled.body": {
+        "pt": "{ok} thumbnail(s) gerada(s) antes do cancelamento. As que faltam "
+              "continuam faltando — gere de novo com “somente vídeos que ainda não "
+              "têm thumbnail” para retomar de onde parou.",
+        "en": "{ok} thumbnail(s) generated before cancelling. The rest are still "
+              "missing — run it again with “only videos that have no thumbnail yet” "
+              "to pick up where it stopped.",
     },
     "app.gen.failed.title": {"pt": "Alguns vídeos falharam", "en": "Some videos failed"},
     "app.gen.failed.body": {
