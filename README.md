@@ -113,7 +113,7 @@ you already have.
 - **Generate thumbnails**: unchecked, **Start** goes straight to the review screen
   using existing thumbnails. Checked, it generates first — with the *only videos
   that have no thumbnail yet* option, which is the common case when you add new
-  videos.
+  videos, and also when a run stopped halfway: only the gaps are filled.
 - **Generate thumbnails only**: the button next to *Start* generates and returns
   to the start screen, without opening the review — to prepare a folder now and
   triage it later. It obeys the same options as the box above and leaves any

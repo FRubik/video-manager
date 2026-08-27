@@ -158,6 +158,12 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt": "Somente vídeos que ainda não têm thumbnail",
         "en": "Only videos that have no thumbnail yet",
     },
+    "setup.gen.only_missing.tip": {
+        "pt": "Refaz apenas o que falta — útil quando uma geração anterior parou no meio. "
+              "Desmarcado, todas as thumbnails são geradas de novo.",
+        "en": "Only fills the gaps — handy when an earlier run stopped halfway. "
+              "Unchecked, every thumbnail is generated again.",
+    },
     "setup.gen.grid": {"pt": "Grade:", "en": "Grid:"},
     "setup.gen.rows": {"pt": "linhas", "en": "rows"},
     "setup.gen.cols": {"pt": "colunas", "en": "columns"},

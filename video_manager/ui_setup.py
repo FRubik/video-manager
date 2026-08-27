@@ -359,6 +359,7 @@ class SetupView(QWidget):
         self.gen_group.setTitle(tr("setup.gen"))
         self.gen_group.setToolTip(tr("setup.gen.tip"))
         self.only_missing.setText(tr("setup.gen.only_missing"))
+        self.only_missing.setToolTip(tr("setup.gen.only_missing.tip"))
         self.grid_label.setText(tr("setup.gen.grid"))
         self.rows_label.setText(tr("setup.gen.rows"))
         self.cols_label.setText(tr("setup.gen.cols"))

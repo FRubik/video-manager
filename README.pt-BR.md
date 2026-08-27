@@ -110,7 +110,8 @@ pasta que você já tem.
   refaz o caminho a qualquer momento, e nada impede apontar para outro lugar.
 - **Gerar thumbnails**: desmarcado, **Iniciar** vai direto para a revisão usando as
   thumbs existentes. Marcado, gera antes — com a opção *somente vídeos que ainda
-  não têm thumbnail*, que é o caso comum quando você adiciona vídeos novos.
+  não têm thumbnail*, que é o caso comum quando você adiciona vídeos novos, e
+  também quando uma geração parou no meio: só o que ficou faltando é refeito.
 - **Somente gerar thumbnails**: o botão ao lado de *Iniciar* gera e volta para a
   tela inicial, sem abrir a revisão — para preparar uma pasta agora e triar
   depois. Ele obedece às mesmas opções do quadro acima e não mexe em nenhuma

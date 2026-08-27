@@ -149,6 +149,8 @@ class MainWindow(QMainWindow):
         # o "talvez" entra aqui também: sem thumbnail ele não apareceria na revisão
         maybe_dir = Path(config.maybe_dir).expanduser() if config.scans_maybe else None
         entries = library.scan(videos_dir, thumbs_dir, maybe_dir)
+        # com "somente faltantes" marcado, uma geração interrompida é retomada
+        # de onde parou: só os vídeos sem thumbnail voltam para a fila
         pending = [e.video for e in entries if not (config.only_missing and e.thumb is not None)]
         self._review_after_generation = review_after
 
