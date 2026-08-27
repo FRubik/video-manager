@@ -149,8 +149,10 @@ STRINGS: dict[str, dict[str, str]] = {
     # --------------------------------------------------- tela: thumbnails
     "setup.gen": {"pt": "Gerar thumbnails", "en": "Generate thumbnails"},
     "setup.gen.tip": {
-        "pt": "Desmarcado: abre direto a interface de revisão usando as thumbs já existentes.",
-        "en": "Unchecked: goes straight to the review screen using the existing thumbnails.",
+        "pt": "Desmarcado: “Iniciar” abre direto a revisão usando as thumbs já existentes. "
+              "Para só gerar, use “Somente gerar thumbnails”.",
+        "en": "Unchecked: “Start” goes straight to the review screen using the existing "
+              "thumbnails. To only generate them, use “Generate thumbnails only”.",
     },
     "setup.gen.only_missing": {
         "pt": "Somente vídeos que ainda não têm thumbnail",
@@ -353,6 +355,15 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt": "Escolher as teclas usadas na tela de revisão",
         "en": "Choose the keys used on the review screen",
     },
+    "setup.generate": {
+        "pt": "Somente gerar thumbnails",
+        "en": "Generate thumbnails only",
+    },
+    "setup.generate.tip": {
+        "pt": "Gera as thumbnails e volta para esta tela, sem abrir a revisão.",
+        "en": "Generates the thumbnails and comes back to this screen, without opening "
+              "the review.",
+    },
     "setup.start": {"pt": "Iniciar", "en": "Start"},
 
     # ------------------------------------------------------ avisos: início
@@ -383,6 +394,15 @@ STRINGS: dict[str, dict[str, str]] = {
     "app.gen.nothing.body": {
         "pt": "Todos os vídeos já possuem thumbnail. Indo para a revisão.",
         "en": "Every video already has a thumbnail. Going to the review screen.",
+    },
+    "app.gen.nothing.body.only": {
+        "pt": "Todos os vídeos já possuem thumbnail.",
+        "en": "Every video already has a thumbnail.",
+    },
+    "app.gen.done.title": {"pt": "Thumbnails geradas", "en": "Thumbnails generated"},
+    "app.gen.done.body": {
+        "pt": "{ok} thumbnail(s) gerada(s) em {folder}.",
+        "en": "{ok} thumbnail(s) generated in {folder}.",
     },
     "app.gen.progress.title": {"pt": "Processando", "en": "Working"},
     "app.gen.progress.label": {"pt": "Gerando thumbnails…", "en": "Generating thumbnails…"},

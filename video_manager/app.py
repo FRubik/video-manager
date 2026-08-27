@@ -42,6 +42,7 @@ class MainWindow(QMainWindow):
         self.review_view.apply_key_bindings(self.config.key_bindings)
 
         self.setup_view.start_requested.connect(self.on_start)
+        self.setup_view.generate_requested.connect(self.on_generate_only)
         self.setup_view.resume_requested.connect(self.on_resume)
         self.setup_view.key_bindings_changed.connect(self.review_view.apply_key_bindings)
         self.setup_view.language_changed.connect(self.on_language_changed)
@@ -51,6 +52,10 @@ class MainWindow(QMainWindow):
         self._worker: ThumbWorker | None = None
         self._progress: QProgressDialog | None = None
         self._pending_config: Config | None = None
+        #: a geração corrente abre a revisão no fim, ou volta para a tela inicial
+        self._review_after_generation = True
+        #: pasta da última geração, citada no aviso de conclusão
+        self._last_thumbs_dir = ""
 
     # --------------------------------------------------------------- idioma
     def on_language_changed(self, code: str) -> None:
@@ -61,23 +66,28 @@ class MainWindow(QMainWindow):
         self.review_view.retranslate()
 
     # --------------------------------------------------------------- início
-    def on_start(self, config: Config) -> None:
+    def _prepare_folders(self, config: Config, *, needs_existing_thumbs: bool) -> bool:
+        """Valida as pastas e preenche as que ficaram em branco. False aborta.
+
+        `needs_existing_thumbs` só é verdadeiro quando nada será gerado agora:
+        aí a pasta de thumbnails precisa já existir para haver o que revisar.
+        """
         videos_dir = Path(config.videos_dir).expanduser()
         thumbs_dir = Path(config.thumbs_dir).expanduser() if config.thumbs_dir else Path()
 
         if not videos_dir.is_dir():
             QMessageBox.warning(self, tr("app.invalid_folder.title"), tr("app.invalid_folder.body"))
-            return
+            return False
         if not config.thumbs_dir:
             QMessageBox.warning(
                 self, tr("app.thumbs_folder.title"), tr("app.thumbs_folder.empty")
             )
-            return
-        if not config.generate_thumbs and not thumbs_dir.is_dir():
+            return False
+        if needs_existing_thumbs and not thumbs_dir.is_dir():
             QMessageBox.warning(
                 self, tr("app.thumbs_folder.title"), tr("app.thumbs_folder.missing")
             )
-            return
+            return False
         if not config.trash_dir:
             config.trash_dir = str(library.default_trash_dir(videos_dir))
             self.setup_view.trash_picker.setText(config.trash_dir)
@@ -88,7 +98,15 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(
                 self, tr("app.same_folders.title"), tr("app.same_folders.body")
             )
+            return False
+        return True
+
+    def on_start(self, config: Config) -> None:
+        if not self._prepare_folders(config, needs_existing_thumbs=not config.generate_thumbs):
             return
+
+        videos_dir = Path(config.videos_dir).expanduser()
+        thumbs_dir = Path(config.thumbs_dir).expanduser()
 
         # antes de gerar qualquer coisa: uma sessão nova apaga a que está guardada
         if not self._confirm_overwrite(thumbs_dir):
@@ -102,18 +120,48 @@ class MainWindow(QMainWindow):
         else:
             self._start_review(config)
 
+    def on_generate_only(self, config: Config) -> None:
+        """Gera as thumbnails e para por aí: nenhuma sessão de revisão é aberta.
+
+        Como nada é movido nem decidido, a sessão guardada em disco continua
+        intacta — por isso não há a pergunta de sobrescrita do “Iniciar”.
+        """
+        if not self._prepare_folders(config, needs_existing_thumbs=False):
+            return
+
+        config.save()
+        self._pending_config = None
+        self._start_generation(
+            config,
+            Path(config.videos_dir).expanduser(),
+            Path(config.thumbs_dir).expanduser(),
+            review_after=False,
+        )
+
     # ----------------------------------------------------------- thumbnails
-    def _start_generation(self, config: Config, videos_dir: Path, thumbs_dir: Path) -> None:
+    def _start_generation(
+        self,
+        config: Config,
+        videos_dir: Path,
+        thumbs_dir: Path,
+        review_after: bool = True,
+    ) -> None:
         # o "talvez" entra aqui também: sem thumbnail ele não apareceria na revisão
         maybe_dir = Path(config.maybe_dir).expanduser() if config.scans_maybe else None
         entries = library.scan(videos_dir, thumbs_dir, maybe_dir)
         pending = [e.video for e in entries if not (config.only_missing and e.thumb is not None)]
+        self._review_after_generation = review_after
 
         if not pending:
             QMessageBox.information(
-                self, tr("app.gen.nothing.title"), tr("app.gen.nothing.body")
+                self,
+                tr("app.gen.nothing.title"),
+                tr("app.gen.nothing.body" if review_after else "app.gen.nothing.body.only"),
             )
-            self._start_review(config)
+            if review_after:
+                self._start_review(config)
+            else:
+                self.setup_view.refresh_summary()
             return
 
         opts = ThumbOptions(
@@ -135,6 +183,7 @@ class MainWindow(QMainWindow):
         self._progress.setAutoReset(False)
         self._progress.canceled.connect(self._cancel_generation)
 
+        self._last_thumbs_dir = str(thumbs_dir)
         self._worker = ThumbWorker(pending, thumbs_dir, opts, parent=self)
         self._worker.progress.connect(self._on_generation_progress)
         self._worker.finished_with_results.connect(self._on_generation_finished)
@@ -174,6 +223,16 @@ class MainWindow(QMainWindow):
                     detail=detail,
                 ),
             )
+
+        if not self._review_after_generation:
+            if not failures:
+                QMessageBox.information(
+                    self,
+                    tr("app.gen.done.title"),
+                    tr("app.gen.done.body", ok=len(results), folder=self._last_thumbs_dir),
+                )
+            self.setup_view.refresh_summary()
+            return
 
         if self._pending_config is not None:
             self._start_review(self._pending_config)

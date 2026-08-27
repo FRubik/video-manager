@@ -110,10 +110,14 @@ you already have.
   three fill themselves in and follow the videos folder around for as long as
   they hold the default value; the **Default** button next to each one rebuilds
   the path at any time, and nothing stops you from pointing them somewhere else.
-- **Generate thumbnails**: unchecked, the app goes straight to the review screen
+- **Generate thumbnails**: unchecked, **Start** goes straight to the review screen
   using existing thumbnails. Checked, it generates first — with the *only videos
   that have no thumbnail yet* option, which is the common case when you add new
   videos.
+- **Generate thumbnails only**: the button next to *Start* generates and returns
+  to the start screen, without opening the review — to prepare a folder now and
+  triage it later. It obeys the same options as the box above and leaves any
+  saved session untouched.
 - **Review session**:
   - *Review every video* — goes through everything that has a thumbnail;
   - *Random check* — draws N videos and the session ends with them, to slice a
