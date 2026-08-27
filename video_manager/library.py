@@ -419,6 +419,37 @@ def folder_size(folder: Path) -> tuple[int, int]:
     return len(videos), total
 
 
+def empty_trash(trash_dir: Path, thumbs_dir: Path | None) -> tuple[int, int]:
+    """Apaga em definitivo os vídeos da quarentena e as thumbs deles.
+
+    As thumbs dos vídeos ainda pendentes não são tocadas: só saem junto as
+    que pertencem a um vídeo apagado aqui, porque essas não servem mais pra
+    nada — o vídeo já era.
+    """
+    index = index_thumbs(thumbs_dir) if thumbs_dir is not None and thumbs_dir.is_dir() else {}
+    count = 0
+    freed = 0
+    for video in list_videos(trash_dir):
+        try:
+            size = video.stat().st_size
+        except OSError:
+            size = 0
+        thumb = find_thumb(video, index)
+        try:
+            video.unlink()
+        except OSError:
+            continue
+        count += 1
+        freed += size
+        if thumb is not None:
+            try:
+                freed += thumb.stat().st_size
+                thumb.unlink()
+            except OSError:
+                pass
+    return count, freed
+
+
 def collect_stats(
     entries: list[VideoEntry],
     state: ReviewState,

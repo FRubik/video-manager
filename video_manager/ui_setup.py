@@ -274,11 +274,16 @@ class SetupView(QWidget):
         self.summary.setStyleSheet("padding: 8px;")
         root.addWidget(self.summary)
 
+        volume_row = QHBoxLayout()
         self.volume = QLabel()
         self.volume.setWordWrap(True)
         self.volume.setFrameShape(QFrame.StyledPanel)
         self.volume.setStyleSheet("padding: 8px;")
-        root.addWidget(self.volume)
+        volume_row.addWidget(self.volume, stretch=1)
+        self.empty_trash_button = QPushButton()
+        self.empty_trash_button.clicked.connect(self._empty_trash)
+        volume_row.addWidget(self.empty_trash_button)
+        root.addLayout(volume_row)
 
         root.addStretch()
 
@@ -380,6 +385,8 @@ class SetupView(QWidget):
         self.resume_discard_button.setText(tr("common.discard"))
         self.resume_discard_button.setToolTip(tr("setup.resume.discard.tip"))
         self.volume.setToolTip(tr("setup.volume.tip"))
+        self.empty_trash_button.setText(tr("setup.empty_trash.button"))
+        self.empty_trash_button.setToolTip(tr("setup.empty_trash.button.tip"))
         self.rescan_button.setText(tr("setup.rescan"))
         self.shortcuts_button.setText(tr("setup.shortcuts"))
         self.shortcuts_button.setToolTip(tr("setup.shortcuts.tip"))
@@ -527,6 +534,7 @@ class SetupView(QWidget):
             self.summary.setText(tr("setup.summary.no_folder"))
             self.volume.clear()
             self.start_button.setEnabled(False)
+            self.empty_trash_button.setEnabled(False)
             return
 
         entries = library.scan(videos_dir, thumbs_dir, self.maybe_scan_dir())
@@ -577,6 +585,7 @@ class SetupView(QWidget):
         trash_dir = self.trash_picker.path() if self.trash_picker.text() else None
         stats = library.collect_stats(entries, state, trash_dir=trash_dir)
         size = library.format_size
+        self.empty_trash_button.setEnabled(bool(stats.trash_count))
 
         primeira = tr(
             "setup.volume.total", size=size(stats.total_bytes), count=stats.total_count
@@ -652,6 +661,38 @@ class SetupView(QWidget):
         if answer == QMessageBox.Discard:
             library.clear_session(self.thumbs_picker.path())
             self.refresh_summary()
+
+    def _empty_trash(self) -> None:
+        """Apaga em definitivo os vídeos da quarentena e as thumbs deles."""
+        if not self.trash_picker.text():
+            return
+        trash_dir = self.trash_picker.path()
+        if not trash_dir.is_dir():
+            return
+        count, total_bytes = library.folder_size(trash_dir)
+        if not count:
+            return
+        answer = QMessageBox.question(
+            self,
+            tr("setup.empty_trash.title"),
+            tr(
+                "setup.empty_trash.body",
+                count=count,
+                size=library.format_size(total_bytes),
+            ),
+            QMessageBox.Yes | QMessageBox.Cancel,
+            QMessageBox.Cancel,
+        )
+        if answer != QMessageBox.Yes:
+            return
+        thumbs_dir = self.thumbs_picker.path() if self.thumbs_picker.text() else None
+        deleted, freed = library.empty_trash(trash_dir, thumbs_dir)
+        QMessageBox.information(
+            self,
+            tr("setup.empty_trash.done.title"),
+            tr("setup.empty_trash.done.body", count=deleted, size=library.format_size(freed)),
+        )
+        self.refresh_summary()
 
     def _emit_start(self) -> None:
         self.start_requested.emit(self.current_config())
