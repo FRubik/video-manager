@@ -413,8 +413,25 @@ STRINGS: dict[str, dict[str, str]] = {
     "app.gen.progress.title": {"pt": "Processando", "en": "Working"},
     "app.gen.progress.label": {"pt": "Gerando thumbnails…", "en": "Generating thumbnails…"},
     "app.gen.progress.detail": {
-        "pt": "Gerando thumbnails… {done}/{total}\n{name}",
-        "en": "Generating thumbnails… {done}/{total}\n{name}",
+        "pt": "Vídeos: {done}/{total} · frames: {frames}/{frames_total}\n{name}",
+        "en": "Videos: {done}/{total} · frames: {frames}/{frames_total}\n{name}",
+    },
+    "app.gen.progress.waiting": {
+        "pt": "os primeiros vídeos estão sendo lidos…",
+        "en": "reading the first videos…",
+    },
+    "app.gen.cancelling": {
+        "pt": "Cancelando… o vídeo em curso para no próximo frame.",
+        "en": "Cancelling… the video in progress stops at the next frame.",
+    },
+    "app.gen.cancelled.title": {"pt": "Geração cancelada", "en": "Generation cancelled"},
+    "app.gen.cancelled.body": {
+        "pt": "{ok} thumbnail(s) gerada(s) antes do cancelamento. As que faltam "
+              "continuam faltando — gere de novo com “somente vídeos que ainda não "
+              "têm thumbnail” para retomar de onde parou.",
+        "en": "{ok} thumbnail(s) generated before cancelling. The rest are still "
+              "missing — run it again with “only videos that have no thumbnail yet” "
+              "to pick up where it stopped.",
     },
     "app.gen.failed.title": {"pt": "Alguns vídeos falharam", "en": "Some videos failed"},
     "app.gen.failed.body": {

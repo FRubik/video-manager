@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
@@ -56,6 +56,13 @@ class MainWindow(QMainWindow):
         self._review_after_generation = True
         #: pasta da última geração, citada no aviso de conclusão
         self._last_thumbs_dir = ""
+        #: vídeos já concluídos no lote corrente, para o texto do progresso
+        self._generated = (0, 0, "")
+        # a barra anda por frame, e não por vídeo: num 4K de vários GB um único
+        # vídeo leva minutos, e a barra parada passava a impressão de travamento
+        self._gen_timer = QTimer(self)
+        self._gen_timer.setInterval(250)
+        self._gen_timer.timeout.connect(self._tick_generation)
 
     # --------------------------------------------------------------- idioma
     def on_language_changed(self, code: str) -> None:
@@ -175,8 +182,11 @@ class MainWindow(QMainWindow):
             workers=config.workers,
         )
 
+        self._generated = (0, len(pending), "")
+        self._worker = ThumbWorker(pending, thumbs_dir, opts, parent=self)
+
         self._progress = QProgressDialog(
-            tr("app.gen.progress.label"), tr("common.cancel"), 0, len(pending), self
+            tr("app.gen.progress.label"), tr("common.cancel"), 0, self._worker.frames_total, self
         )
         self._progress.setWindowTitle(tr("app.gen.progress.title"))
         self._progress.setWindowModality(Qt.WindowModal)
@@ -186,31 +196,59 @@ class MainWindow(QMainWindow):
         self._progress.canceled.connect(self._cancel_generation)
 
         self._last_thumbs_dir = str(thumbs_dir)
-        self._worker = ThumbWorker(pending, thumbs_dir, opts, parent=self)
         self._worker.progress.connect(self._on_generation_progress)
         self._worker.finished_with_results.connect(self._on_generation_finished)
         self._worker.start()
+        self._gen_timer.start()
 
     def _cancel_generation(self) -> None:
-        if self._worker is not None:
-            self._worker.cancel()
+        if self._worker is None:
+            return
+        self._worker.cancel()
+        # o diálogo se esconde sozinho ao cancelar; ele volta dizendo o que
+        # está acontecendo, porque o vídeo em curso ainda leva um frame para
+        # perceber o pedido
+        if self._progress is not None:
+            self._progress.setLabelText(tr("app.gen.cancelling"))
+            self._progress.show()
 
     def _on_generation_progress(self, done: int, total: int, name: str) -> None:
+        self._generated = (done, total, name)
+        self._tick_generation()
+
+    def _tick_generation(self) -> None:
+        """Repinta o diálogo com o andamento em frames do lote inteiro."""
         # `setValue` roda o event loop do diálogo modal, o que pode fechar e
         # zerar `self._progress` no meio deste método — por isso a cópia local.
         dialog = self._progress
-        if dialog is None:
+        worker = self._worker
+        if dialog is None or worker is None:
             return
-        dialog.setLabelText(tr("app.gen.progress.detail", done=done, total=total, name=name))
-        dialog.setValue(done)
+        done, total, name = self._generated
+        if not worker.cancelled:
+            dialog.setLabelText(
+                tr(
+                    "app.gen.progress.detail",
+                    done=done,
+                    total=total,
+                    frames=worker.frames_done,
+                    frames_total=worker.frames_total,
+                    name=name or tr("app.gen.progress.waiting"),
+                )
+            )
+        dialog.setValue(min(worker.frames_done, worker.frames_total))
 
     def _on_generation_finished(self, results: list) -> None:
+        self._gen_timer.stop()
         if self._progress is not None:
             self._progress.close()
             self._progress = None
+        cancelled = self._worker is not None and self._worker.cancelled
         self._worker = None
 
-        failures = [r for r in results if not r.ok]
+        # o que foi abortado a pedido do usuário não é falha do vídeo
+        failures = [r for r in results if not r.ok and not r.cancelled]
+        generated = sum(1 for r in results if r.ok)
         if failures:
             detail = "\n".join(f"• {r.video.name}: {r.error}" for r in failures[:15])
             if len(failures) > 15:
@@ -226,12 +264,22 @@ class MainWindow(QMainWindow):
                 ),
             )
 
+        if cancelled:
+            # quem cancelou a geração não quer cair na revisão logo em seguida
+            QMessageBox.information(
+                self,
+                tr("app.gen.cancelled.title"),
+                tr("app.gen.cancelled.body", ok=generated),
+            )
+            self.setup_view.refresh_summary()
+            return
+
         if not self._review_after_generation:
             if not failures:
                 QMessageBox.information(
                     self,
                     tr("app.gen.done.title"),
-                    tr("app.gen.done.body", ok=len(results), folder=self._last_thumbs_dir),
+                    tr("app.gen.done.body", ok=generated, folder=self._last_thumbs_dir),
                 )
             self.setup_view.refresh_summary()
             return
@@ -366,6 +414,10 @@ class MainWindow(QMainWindow):
 
     # --------------------------------------------------------------- saída
     def closeEvent(self, event):
+        if self._worker is not None and self._worker.isRunning():
+            self._gen_timer.stop()
+            self._worker.cancel()
+            self._worker.wait(30000)
         if self.stack.currentWidget() is self.review_view and self.review_view.has_pending_changes():
             if not self._resolve_pending_on_exit():
                 event.ignore()

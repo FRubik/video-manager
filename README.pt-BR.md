@@ -116,6 +116,12 @@ pasta que você já tem.
   tela inicial, sem abrir a revisão — para preparar uma pasta agora e triar
   depois. Ele obedece às mesmas opções do quadro acima e não mexe em nenhuma
   sessão guardada.
+
+O andamento da geração é contado em frames, e não em vídeos: um 4K de vários GB
+leva minutos sozinho, e uma barra que só se mexe quando o vídeo inteiro termina
+parece travada. **Cancelar** interrompe o vídeo em curso no frame seguinte; o
+que já foi gerado fica salvo, e rodar de novo com *somente vídeos que ainda não
+têm thumbnail* retoma de onde parou.
 - **Sessão de revisão**:
   - *Revisar todos* — passa por tudo que tem thumbnail;
   - *Verificação randômica* — sorteia N vídeos e a sessão termina neles, para

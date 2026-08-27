@@ -118,6 +118,12 @@ you already have.
   to the start screen, without opening the review — to prepare a folder now and
   triage it later. It obeys the same options as the box above and leaves any
   saved session untouched.
+
+Progress is counted in frames rather than videos: a multi-GB 4K file takes
+minutes on its own, and a bar that only moves when a whole video finishes looks
+frozen. **Cancel** stops the video in progress at the next frame; whatever was
+generated stays on disk, and running again with *only videos that have no
+thumbnail yet* picks up where it stopped.
 - **Review session**:
   - *Review every video* — goes through everything that has a thumbnail;
   - *Random check* — draws N videos and the session ends with them, to slice a

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable
@@ -30,6 +30,8 @@ class ThumbResult:
     video: Path
     ok: bool
     error: str | None = None
+    #: abortado a pedido do usuário — não conta como falha do vídeo
+    cancelled: bool = False
 
 
 def format_seconds(seconds: float) -> str:
@@ -56,9 +58,25 @@ def _draw_timestamp(img: Image.Image, text: str, font) -> None:
     draw.text((x, y), text, font=font, fill=(255, 255, 255))
 
 
-def extract_sheet(video_path: Path, output_dir: Path, opts: ThumbOptions) -> ThumbResult:
-    """Extrai n_rows*n_cols frames equidistantes e monta a grade em um JPEG."""
+def extract_sheet(
+    video_path: Path,
+    output_dir: Path,
+    opts: ThumbOptions,
+    should_cancel: Callable[[], bool] | None = None,
+    on_step: Callable[[], None] | None = None,
+) -> ThumbResult:
+    """Extrai n_rows*n_cols frames equidistantes e monta a grade em um JPEG.
+
+    `should_cancel` é consultado a cada frame: num vídeo 4K de vários GB uma
+    única extração leva minutos, e esperar por ela era o que fazia o cancelar
+    parecer que não funcionava. `on_step` avisa a cada frame pronto, para a
+    barra de progresso andar dentro do vídeo e não só entre um e outro.
+    """
+    cancelado = ThumbResult(video_path, False, None, cancelled=True)
     try:
+        if should_cancel is not None and should_cancel():
+            return cancelado
+
         output_dir.mkdir(parents=True, exist_ok=True)
 
         cap = cv2.VideoCapture(str(video_path))
@@ -98,6 +116,9 @@ def extract_sheet(video_path: Path, output_dir: Path, opts: ThumbOptions) -> Thu
         thumbs: list[Image.Image] = []
 
         for t in times:
+            if should_cancel is not None and should_cancel():
+                cap.release()
+                return cancelado
             cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000.0)
             ret, frame_bgr = cap.read()
             if not ret:  # fallback por índice de frame
@@ -107,6 +128,8 @@ def extract_sheet(video_path: Path, output_dir: Path, opts: ThumbOptions) -> Thu
 
             if not ret:
                 thumbs.append(Image.new("RGB", (cell_w, cell_h), (0, 0, 0)))
+                if on_step is not None:
+                    on_step()
                 continue
 
             frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
@@ -114,6 +137,8 @@ def extract_sheet(video_path: Path, output_dir: Path, opts: ThumbOptions) -> Thu
             if opts.add_timestamp:
                 _draw_timestamp(img, format_seconds(t), font)
             thumbs.append(img)
+            if on_step is not None:
+                on_step()
 
         cap.release()
 
@@ -137,8 +162,14 @@ def generate(
     opts: ThumbOptions,
     progress: Callable[[int, int, ThumbResult], None] | None = None,
     should_cancel: Callable[[], bool] | None = None,
+    on_step: Callable[[], None] | None = None,
 ) -> list[ThumbResult]:
-    """Processa a lista em paralelo, reportando progresso a cada vídeo concluído."""
+    """Processa a lista em paralelo, reportando progresso a cada vídeo concluído.
+
+    `on_step` é chamado de dentro das threads do pool, a cada frame extraído:
+    quem passa o callback precisa que ele seja seguro para chamadas simultâneas
+    e fora da thread principal.
+    """
     videos = list(videos)
     results: list[ThumbResult] = []
     if not videos:
@@ -148,17 +179,30 @@ def generate(
     workers = max(1, opts.workers)
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = {executor.submit(extract_sheet, v, output_dir, opts): v for v in videos}
-        for done, future in enumerate(as_completed(futures), start=1):
+        futures = {
+            executor.submit(
+                extract_sheet, v, output_dir, opts, should_cancel, on_step
+            ): v
+            for v in videos
+        }
+        done = 0
+        for future in as_completed(futures):
+            # sem `break`: a fila é percorrida até o fim mesmo cancelada, para
+            # que todo vídeo submetido tenha um resultado. O que ainda não
+            # começou sai na hora; o que está em curso para no próximo frame.
             if should_cancel is not None and should_cancel():
                 for pending in futures:
                     pending.cancel()
-                break
             try:
                 result = future.result()
+            except CancelledError:
+                result = ThumbResult(futures[future], False, None, cancelled=True)
             except Exception as exc:
                 result = ThumbResult(futures[future], False, str(exc))
             results.append(result)
+            if result.cancelled:
+                continue
+            done += 1
             if progress is not None:
                 progress(done, len(videos), result)
 
