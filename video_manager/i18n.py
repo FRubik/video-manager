@@ -322,6 +322,30 @@ STRINGS: dict[str, dict[str, str]] = {
               "left when it is over.",
     },
 
+    # ---------------------------------------------------- tela: esvaziar quarentena
+    "setup.empty_trash.button": {"pt": "Esvaziar quarentena", "en": "Empty quarantine"},
+    "setup.empty_trash.button.tip": {
+        "pt": "Apaga em definitivo os vídeos da pasta de descarte e as thumbs deles — "
+              "libera o espaço sem mexer nas thumbs dos vídeos ainda pendentes.",
+        "en": "Permanently deletes the videos in the discard folder and their thumbs — "
+              "frees the space without touching the thumbs of videos still pending.",
+    },
+    "setup.empty_trash.title": {"pt": "Esvaziar quarentena", "en": "Empty quarantine"},
+    "setup.empty_trash.body": {
+        "pt": "Isso apaga em definitivo {count} vídeo(s) ({size}) da pasta de descarte, "
+              "junto com as thumbs deles. Não tem como desfazer.",
+        "en": "This permanently deletes {count} video(s) ({size}) from the discard "
+              "folder, along with their thumbs. This cannot be undone.",
+    },
+    "setup.empty_trash.done.title": {
+        "pt": "Quarentena esvaziada",
+        "en": "Quarantine emptied",
+    },
+    "setup.empty_trash.done.body": {
+        "pt": "{count} vídeo(s) apagado(s), {size} liberados.",
+        "en": "{count} video(s) deleted, {size} freed.",
+    },
+
     # ---------------------------------------------------- tela: ações
     "setup.rescan": {"pt": "Reanalisar pastas", "en": "Rescan folders"},
     "setup.shortcuts": {"pt": "Atalhos…", "en": "Shortcuts…"},
