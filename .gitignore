@@ -19,3 +19,6 @@ config.json
 .video_manager_state.json
 .video_manager_session.json
 _movimentos.jsonl
+
+# registro local de sessões (não versionado)
+sessoes/
