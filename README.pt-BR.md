@@ -320,6 +320,37 @@ video_manager/
 └── app.py         janela principal
 ```
 
+## Por que OpenCV e não ffmpeg
+
+Extrair os frames chamando o `ffmpeg` uma vez por frame — com
+`-noaccurate_seek`, para receber o keyframe mais próximo em vez de decodificar o
+GOP inteiro — parece que deveria ser bem mais rápido que
+`cap.set(CAP_PROP_POS_MSEC)` num arquivo grande. Isso foi medido, numa
+biblioteca real de 247 vídeos (415 GB, na maior parte 1080p H.264, alguns HEVC,
+uns poucos 4K), e não é.
+
+**O OpenCV ganhou em 8 dos 9 vídeos da amostra, tanto na grade 3×3 quanto na
+5×5**, por 1,2× a 1,8×. Dois outros desenhos foram testados para eliminar o
+custo de um processo por frame — um único ffmpeg com N entradas com seek, e um
+montando a grade inteira com `xstack` — e os dois continuaram perdendo, além de
+chegarem a 7 GB de pico de memória, porque N entradas no mesmo arquivo são N
+demuxers e N decodificadores vivos ao mesmo tempo.
+
+O motivo é que o OpenCV *é* libavcodec. A diferença nunca foi um decodificador
+melhor: o OpenCV abre o arquivo uma vez e mantém demuxer e decodificador vivos
+entre os seeks, enquanto cada `-ss` reabre tudo. Esse custo, pago 9 ou 25 vezes,
+supera o que se economiza dispensando a precisão do seek — inclusive em HEVC.
+Somado a isso, o `-noaccurate_seek` cai em média a 1,8 s do instante pedido (até
+8,9 s em HEVC), o que um contact sheet com horário teria de levar em conta.
+
+As medições rodaram num NVMe, um vídeo por vez. Disco externo lento e os 6
+workers paralelos do app não foram testados.
+
+O tamanho da grade, por outro lado, é a alavanca barata: o custo é proporcional
+ao número de células, sem custo fixo por vídeo relevante para amortizar, então
+**cair de 5×5 para 3×3 corta cerca de 70% do tempo de geração** — com qualquer
+motor.
+
 ## Contribuindo
 
 Issues e pull requests são bem-vindos. Duas coisas que vale saber antes de mexer

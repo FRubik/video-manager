@@ -327,6 +327,36 @@ video_manager/
 └── app.py         main window
 ```
 
+## Why OpenCV and not ffmpeg
+
+Extracting frames by calling `ffmpeg` once per frame — with `-noaccurate_seek`,
+so it returns the nearest keyframe instead of decoding the whole GOP — looks
+like it should be much faster than `cap.set(CAP_PROP_POS_MSEC)` on a large file.
+It was measured, on a real library of 247 videos (415 GB, mostly 1080p H.264,
+some HEVC, a few 4K), and it is not.
+
+**OpenCV won in 8 of the 9 sampled videos, in both a 3×3 and a 5×5 grid**, by
+1.2× to 1.8×. Two other designs were tried to remove the per-frame process cost
+— one ffmpeg process with N seek inputs, and one building the whole grid with
+`xstack` — and both still lost, while peaking at 7 GB of RAM, because N inputs
+on the same file means N demuxers and N decoders alive at once.
+
+The reason is that OpenCV *is* libavcodec. The difference was never a better
+decoder: OpenCV opens the file once and keeps the demuxer and decoder alive
+between seeks, while every `-ss` reopens everything. That cost, paid 9 or 25
+times, outweighs what skipping the accurate seek saves — even on HEVC. On top of
+that, `-noaccurate_seek` lands on average 1.8 s away from the requested instant
+(up to 8.9 s on HEVC), which a contact sheet with timestamps would have to
+account for.
+
+The measurements ran on an NVMe drive, one video at a time. A slow external
+drive and the app's 6 parallel workers were not tested.
+
+Grid size, on the other hand, is the cheap lever: the cost is proportional to
+the number of cells, with no meaningful per-video overhead to amortise, so
+**dropping from 5×5 to 3×3 cuts about 70% of the generation time** — with any
+engine.
+
 ## Contributing
 
 Issues and pull requests are welcome. Two things worth knowing before touching
