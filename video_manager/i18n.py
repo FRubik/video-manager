@@ -169,11 +169,62 @@ STRINGS: dict[str, dict[str, str]] = {
     "setup.gen.grid": {"pt": "Grade:", "en": "Grid:"},
     "setup.gen.rows": {"pt": "linhas", "en": "rows"},
     "setup.gen.cols": {"pt": "colunas", "en": "columns"},
+    "setup.gen.grid.tip": {
+        "pt": "Quantos frames a folha tem: 5 × 5 = 25 instantes ao longo do vídeo. "
+              "É o que mais pesa no tempo de geração — o custo é por célula, então "
+              "uma 3 × 3 sai em cerca de um terço do tempo de uma 5 × 5.",
+        "en": "How many frames the sheet holds: 5 × 5 = 25 moments across the video. "
+              "It is what weighs most on generation time — the cost is per cell, so a "
+              "3 × 3 takes about a third of the time of a 5 × 5.",
+    },
     "setup.gen.details": {"pt": "Detalhes:", "en": "Details:"},
     "setup.gen.cell_height": {"pt": "altura da célula", "en": "cell height"},
+    "setup.gen.cell_height.tip": {
+        "pt": "Altura de cada frame na folha, em pixels; a largura sai sozinha da "
+              "proporção do vídeo (200 px num 16:9 dá células de 355 × 200). Decide o "
+              "tamanho da folha e o quanto se enxerga no zoom 1:1 da revisão — quase "
+              "não muda o tempo de geração.",
+        "en": "Height of each frame on the sheet, in pixels; the width follows the "
+              "video’s aspect ratio (200 px on a 16:9 gives 355 × 200 cells). It sets "
+              "the sheet size and how much you can see in the review’s 1:1 zoom — it "
+              "barely affects generation time.",
+    },
     "setup.gen.margin": {"pt": "margem", "en": "margin"},
+    "setup.gen.margin.tip": {
+        "pt": "Fatia do começo e do fim do vídeo que fica de fora. Com 0,05 os frames "
+              "saem entre 5% e 95% da duração, o que evita gastar células com a "
+              "abertura preta e com os créditos. Em 0,00 a folha cobre o vídeo inteiro.",
+        "en": "Slice of the start and the end left out. At 0.05 the frames are taken "
+              "between 5% and 95% of the runtime, which keeps cells from being spent on "
+              "a black opening and on credits. At 0.00 the sheet covers the whole video.",
+    },
     "setup.gen.spacing": {"pt": "espaço", "en": "spacing"},
+    "setup.gen.spacing.tip": {
+        "pt": "Espaço em pixels entre os frames e na borda da folha. Em 0 as células "
+              "ficam coladas, como numa tira de filme; alguns pixels separam cenas "
+              "parecidas e deixam claro onde uma acaba e a outra começa.",
+        "en": "Space in pixels between the frames and around the sheet. At 0 the cells "
+              "sit flush, like a film strip; a few pixels pull similar scenes apart and "
+              "make it clear where one ends and the next begins.",
+    },
     "setup.gen.workers": {"pt": "threads", "en": "threads"},
+    "setup.gen.workers.tip": {
+        "pt": "Quantos vídeos são processados ao mesmo tempo — não quantos frames de um "
+              "mesmo vídeo, que saem sempre em sequência. Em disco interno rápido, mais "
+              "threads ajudam até o número de núcleos; em HD externo, 2 ou 3 costumam "
+              "render mais que 6, porque o gargalo passa a ser o disco.",
+        "en": "How many videos are processed at the same time — not how many frames of "
+              "one video, which always come in sequence. On a fast internal disk more "
+              "threads help up to the core count; on an external drive 2 or 3 often beat "
+              "6, because the bottleneck becomes the disk.",
+    },
+    "setup.gen.defaults": {"pt": "Restaurar padrões", "en": "Restore defaults"},
+    "setup.gen.defaults.tip": {
+        "pt": "Devolve as opções deste quadro aos valores de fábrica, inclusive as "
+              "informações do cabeçalho. As pastas e a sessão de revisão não mudam.",
+        "en": "Puts the options in this box back to their factory values, header "
+              "information included. Folders and the review session are left alone.",
+    },
     "setup.gen.timestamp": {
         "pt": "Escrever o tempo em cada frame",
         "en": "Stamp the timestamp on each frame",

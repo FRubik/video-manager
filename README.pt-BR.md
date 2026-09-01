@@ -117,6 +117,19 @@ pasta que você já tem.
   thumbs existentes. Marcado, gera antes — com a opção *somente vídeos que ainda
   não têm thumbnail*, que é o caso comum quando você adiciona vídeos novos, e
   também quando uma geração parou no meio: só o que ficou faltando é refeito.
+- **Grade e Detalhes**: os cinco parâmetros da geração, todos com a explicação
+  no *tooltip* do próprio campo:
+
+  | Parâmetro | O que faz |
+  | --- | --- |
+  | **Grade** (linhas × colunas) | Quantos frames a folha tem. É o que mais pesa no tempo: o custo é por célula, então uma 3 × 3 sai em cerca de um terço do tempo de uma 5 × 5. |
+  | **altura da célula** | Altura de cada frame, em pixels; a largura sai sozinha da proporção do vídeo (200 px num 16:9 dá células de 355 × 200). Decide o tamanho da folha e o quanto se enxerga no zoom 1:1 — quase não muda o tempo de geração. |
+  | **margem** | A fatia do começo e do fim que fica de fora. Com 0,05 os frames saem entre 5% e 95% da duração, o que evita gastar células com a abertura preta e com os créditos. |
+  | **espaço** | Pixels entre os frames e ao redor da folha, no mesmo cinza do cabeçalho. Em 0 as células ficam coladas, como numa tira de filme; alguns pixels separam cenas parecidas. |
+  | **threads** | Quantos **vídeos** são processados ao mesmo tempo — não frames do mesmo vídeo, que saem sempre em sequência. Em disco interno rápido, mais threads ajudam até o número de núcleos; em HD externo, 2 ou 3 costumam render mais que 6, porque o gargalo passa a ser o disco. |
+
+  O botão **Restaurar padrões** devolve só este quadro aos valores de fábrica —
+  as pastas e a sessão de revisão não são tocadas.
 - **Cabeçalho com as informações do arquivo**: uma faixa no topo de cada folha
   com nome, tamanho, resolução, duração e — quando há `ffprobe` — codec, perfil,
   bitrate e a faixa de áudio. O botão **Escolher informações…** abre a lista do

@@ -216,9 +216,12 @@ class SetupView(QWidget):
         self.header_button = QPushButton()
         self.header_button.clicked.connect(self._edit_header_fields)
         self.header.toggled.connect(self.header_button.setEnabled)
+        self.gen_defaults_button = QPushButton()
+        self.gen_defaults_button.clicked.connect(self._restore_gen_defaults)
         header_row.addWidget(self.header)
         header_row.addWidget(self.header_button)
         header_row.addStretch()
+        header_row.addWidget(self.gen_defaults_button)
         gen_form.addRow(self._wrap(header_row))
         root.addWidget(self.gen_group)
 
@@ -387,6 +390,20 @@ class SetupView(QWidget):
         self.margin_label.setText(tr("setup.gen.margin"))
         self.spacing_label.setText(tr("setup.gen.spacing"))
         self.workers_label.setText(tr("setup.gen.workers"))
+        self.gen_defaults_button.setText(tr("setup.gen.defaults"))
+        self.gen_defaults_button.setToolTip(tr("setup.gen.defaults.tip"))
+        # a explicação de cada parâmetro vai no rótulo e no campo: quem passa o
+        # mouse pode estar mirando qualquer um dos dois
+        for chave, widgets in (
+            ("grid", (self.grid_label, self.rows_label, self.cols_label,
+                      self.n_rows, self.n_cols)),
+            ("cell_height", (self.cell_height_label, self.cell_height)),
+            ("margin", (self.margin_label, self.margin)),
+            ("spacing", (self.spacing_label, self.spacing)),
+            ("workers", (self.workers_label, self.workers)),
+        ):
+            for widget in widgets:
+                widget.setToolTip(tr(f"setup.gen.{chave}.tip"))
         self.add_timestamp.setText(tr("setup.gen.timestamp"))
         self.header.setText(tr("setup.gen.header"))
         self.header.setToolTip(tr("setup.gen.header.tip"))
@@ -513,6 +530,24 @@ class SetupView(QWidget):
         c.only_maybe = self.maybe_only.isChecked()
         c.include_maybe = self.maybe_include.isChecked()
         return c
+
+    def _restore_gen_defaults(self) -> None:
+        """Devolve o quadro de geração aos valores de fábrica.
+
+        Só este quadro: pastas e sessão de revisão não são tocadas, e nada é
+        gravado até a próxima geração — desfazer é sair sem gerar.
+        """
+        padrao = Config()
+        self.only_missing.setChecked(padrao.only_missing)
+        self.n_rows.setValue(padrao.n_rows)
+        self.n_cols.setValue(padrao.n_cols)
+        self.cell_height.setValue(padrao.cell_height)
+        self.margin.setValue(padrao.margin)
+        self.spacing.setValue(padrao.spacing)
+        self.workers.setValue(padrao.workers)
+        self.add_timestamp.setChecked(padrao.add_timestamp)
+        self.header.setChecked(padrao.header)
+        self._header_fields = list(padrao.header_fields)
 
     def _edit_header_fields(self) -> None:
         """Escolha das informações do cabeçalho; a config só muda no “Ok”."""

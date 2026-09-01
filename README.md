@@ -119,6 +119,19 @@ you already have.
   using existing thumbnails. Checked, it generates first — with the *only videos
   that have no thumbnail yet* option, which is the common case when you add new
   videos, and also when a run stopped halfway: only the gaps are filled.
+- **Grid and Details**: the five generation parameters, each explained in its own
+  field tooltip:
+
+  | Parameter | What it does |
+  | --- | --- |
+  | **Grid** (rows × columns) | How many frames the sheet holds. It is what weighs most on time: the cost is per cell, so a 3 × 3 takes about a third of the time of a 5 × 5. |
+  | **cell height** | Height of each frame, in pixels; the width follows the video’s aspect ratio (200 px on a 16:9 gives 355 × 200 cells). It sets the sheet size and how much you see in the 1:1 zoom — it barely affects generation time. |
+  | **margin** | The slice of the start and the end left out. At 0.05 the frames are taken between 5% and 95% of the runtime, which keeps cells from being spent on a black opening and on credits. |
+  | **spacing** | Pixels between the frames and around the sheet, in the same grey as the header. At 0 the cells sit flush, like a film strip; a few pixels pull similar scenes apart. |
+  | **threads** | How many **videos** are processed at the same time — not frames of one video, which always come in sequence. On a fast internal disk more threads help up to the core count; on an external drive 2 or 3 often beat 6, because the bottleneck becomes the disk. |
+
+  The **Restore defaults** button puts only this box back to its factory values —
+  folders and the review session are left alone.
 - **Header with the file information**: a band at the top of every sheet with
   name, size, resolution, duration and — when `ffprobe` is around — codec,
   profile, bitrate and the audio track. The **Choose information…** button opens
