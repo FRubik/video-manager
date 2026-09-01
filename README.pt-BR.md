@@ -4,16 +4,33 @@
 
 *[Read in English](README.md)*
 
-Interface gráfica (PySide6) para gerar *contact sheets* de uma pasta de vídeos e
-triar, com o teclado, o que fica e o que vai para a quarentena.
+Programa de mesa (PySide6) para **gerenciar uma pasta de vídeos**: ver o que há
+nela sem abrir arquivo por arquivo, decidir o que fica e o que sai, acompanhar
+quanto disco isso libera, e parar no meio para continuar outro dia.
 
-Feito para a pasta que passou do ponto de assistir tudo de novo — uma grade de
-frames costuma bastar para decidir, e os vídeos para os quais ela não basta
-ganham uma pilha própria.
+Feito para a pasta que passou do ponto de assistir tudo de novo. A ferramenta
+central é o *contact sheet* — uma folha com uma grade de frames e um cabeçalho
+com os dados do arquivo —, e ela costuma bastar para decidir; os vídeos para os
+quais não basta ganham uma pilha própria em vez de uma decisão apressada.
 
-O motor de extração de frames é o mesmo do notebook `Thumbnail Maker` — inclusive
-a convenção de nome das thumbnails (`meu_video.mp4.jpg`), então as thumbs que você
-já gerou são reaproveitadas sem precisar gerar de novo.
+O que ele faz:
+
+- **Gera contact sheets** de uma pasta inteira, em paralelo, com grade, tamanho,
+  espaçamento e recorte configuráveis, e um cabeçalho com nome, tamanho,
+  resolução, duração, codec, bitrate e áudio. Dá para usar só isso e ignorar o
+  resto — o botão *Somente gerar thumbnails* existe para esse uso.
+- **Tria pelo teclado**, uma folha por vez: manter, apagar, *talvez*, voltar
+  atrás, abrir no player. Nada é movido enquanto você decide.
+- **Move em vez de apagar**: o descarte vai para uma quarentena, com log de cada
+  movimento, e só some de vez quando você mandar esvaziar.
+- **Guarda o que você já decidiu**, para não rever o mesmo vídeo duas vezes, e
+  **retoma uma sessão interrompida** exatamente onde parou.
+- **Projeta o tamanho final da pasta** a partir do que você já descartou.
+- Fala **português e inglês**, com as teclas configuráveis.
+
+As thumbnails usam a convenção de nome `meu_video.mp4.jpg`, a mesma de vários
+geradores de contact sheet, então as folhas que você já tem numa pasta são
+reconhecidas e reaproveitadas em vez de geradas de novo.
 
 ## Requisitos
 
@@ -149,6 +166,12 @@ leva minutos sozinho, e uma barra que só se mexe quando o vídeo inteiro termin
 parece travada. **Cancelar** interrompe o vídeo em curso no frame seguinte; o
 que já foi gerado fica salvo, e rodar de novo com *somente vídeos que ainda não
 têm thumbnail* retoma de onde parou.
+
+Se algum vídeo falhar — arquivo corrompido, codec que nem o ffmpeg abre —, o
+aviso do fim lista os erros e oferece **mover os que falharam** para uma pasta
+`_thumb_falhou` dentro da pasta de vídeos. É um canto para conferir à mão: o
+programa não varre nem gerencia essa pasta, só junta ali o que deu problema para
+não misturar com o resto. As thumbnails não são tocadas.
 - **Sessão de revisão**:
   - *Revisar todos* — passa por tudo que tem thumbnail;
   - *Verificação randômica* — sorteia N vídeos e a sessão termina neles, para
@@ -233,7 +256,15 @@ verificação randômica quando a pilha ficou grande demais para uma sentada.
   histórico: o vídeo volta a aparecer na próxima sessão, com a decisão a tomar
   de novo.
 
-### 5. Quanto vai sobrar
+### 5. Esvaziar a quarentena
+
+Mover para a quarentena não libera disco — o vídeo continua lá, ocupando o mesmo
+espaço, até você decidir que não vai voltar atrás. O botão **Esvaziar
+quarentena**, na tela inicial, apaga em definitivo os vídeos dessa pasta e as
+thumbs deles, e diz antes quantos são e quanto espaço isso devolve. As thumbs dos
+vídeos ainda pendentes não são tocadas. Não tem como desfazer.
+
+### 6. Quanto vai sobrar
 
 A pergunta que o painel de volume responde: *em que tamanho esta pasta vai
 parar quando eu terminar de triar tudo?*
@@ -262,7 +293,7 @@ antes disso ela seria 0% ou 100%. Como o tamanho passou a ser gravado no
 histórico só a partir desta versão, as decisões que você tomou antes não entram
 na conta — a projeção começa a valer depois das próximas sessões.
 
-### 6. Parar no meio e continuar depois
+### 7. Parar no meio e continuar depois
 
 Uma pasta com milhares de vídeos não cabe numa sentada, e a interrupção não
 avisa. Há duas formas de largar a sessão pela metade, para dois problemas
@@ -338,11 +369,13 @@ video_manager/
 ├── icons.py       carrega o ícone da aplicação
 ├── icons/         o ícone em si (tamanhos hicolor + SVG)
 ├── library.py     varredura, pareamento vídeo↔thumb, sessão salva, quarentena
+├── metadata.py    dados do arquivo para o cabeçalho (os.stat, OpenCV, ffprobe)
 ├── shortcuts.py   ações da revisão e as teclas que as disparam
-├── thumbs.py      extração dos frames e montagem da grade (motor do notebook)
+├── thumbs.py      extração dos frames, cabeçalho e montagem da grade
 ├── worker.py      geração em thread separada
 ├── ui_setup.py    tela inicial
 ├── ui_review.py   tela de revisão
+├── ui_header.py   diálogo das informações do cabeçalho
 ├── ui_shortcuts.py  diálogo de personalização das teclas
 └── app.py         janela principal
 ```

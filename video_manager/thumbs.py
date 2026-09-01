@@ -1,4 +1,4 @@
-"""Geração dos contact sheets (grade de frames) — motor herdado do Thumbnail Maker."""
+"""Geração dos contact sheets: extração dos frames, cabeçalho e montagem da grade."""
 
 from __future__ import annotations
 

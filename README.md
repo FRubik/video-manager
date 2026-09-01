@@ -4,16 +4,33 @@
 
 *[Leia em português](README.pt-BR.md)*
 
-A desktop app (PySide6) that builds *contact sheets* for a folder of videos and
-lets you triage them from the keyboard: what stays, and what goes to quarantine.
+A desktop app (PySide6) for **managing a folder of videos**: seeing what is in
+it without opening one file at a time, deciding what stays and what goes,
+watching how much disk that frees, and stopping halfway to carry on another day.
 
-Built for the folder that grew past the point of watching everything again — a
-grid of frames is usually enough to decide, and the ones it isn't enough for get
-their own pile.
+Built for the folder that grew past the point of watching everything again. The
+central tool is the *contact sheet* — a grid of frames with a header carrying the
+file's data — and it is usually enough to decide; the videos it isn't enough for
+get a pile of their own instead of a rushed decision.
 
-The frame-extraction engine comes from the `Thumbnail Maker` notebook, naming
-convention included (`my_video.mp4.jpg`), so thumbnails you generated earlier are
-reused instead of being made again.
+What it does:
+
+- **Generates contact sheets** for a whole folder, in parallel, with a
+  configurable grid, size, spacing and trim, and a header with name, size,
+  resolution, duration, codec, bitrate and audio. You can use only this and
+  ignore the rest — the *Generate thumbnails only* button exists for that.
+- **Triages from the keyboard**, one sheet at a time: keep, delete, *maybe*, step
+  back, open in the player. Nothing is moved while you decide.
+- **Moves instead of deleting**: discards go to a quarantine, with a log of every
+  move, and only disappear for good when you say so.
+- **Remembers what you already decided**, so the same video doesn't come back
+  twice, and **resumes an interrupted session** exactly where it stopped.
+- **Projects the folder's final size** from what you have discarded so far.
+- Speaks **English and Portuguese**, with configurable keys.
+
+Thumbnails follow the `my_video.mp4.jpg` naming convention, the same one several
+contact-sheet generators use, so sheets you already have in a folder are
+recognised and reused instead of being made again.
 
 ## Requirements
 
@@ -151,6 +168,12 @@ minutes on its own, and a bar that only moves when a whole video finishes looks
 frozen. **Cancel** stops the video in progress at the next frame; whatever was
 generated stays on disk, and running again with *only videos that have no
 thumbnail yet* picks up where it stopped.
+
+If some video fails — a corrupt file, a codec not even ffmpeg opens — the closing
+notice lists the errors and offers to **move the failed ones** into a
+`_thumb_failed` folder inside the videos folder. It is a corner to inspect by
+hand: the app neither scans nor manages that folder, it just gathers what went
+wrong in one place. No thumbnail is touched.
 - **Review session**:
   - *Review every video* — goes through everything that has a thumbnail;
   - *Random check* — draws N videos and the session ends with them, to slice a
@@ -235,7 +258,15 @@ combining with the random check when the pile got too big for one sitting.
 - A move that fails (permissions, full disk) is **not** recorded in the history:
   the video shows up again in the next session, with the decision still to make.
 
-### 5. How much will be left
+### 5. Emptying the quarantine
+
+Moving to quarantine frees no disk — the video is still there, taking up the same
+space, until you decide you won't go back on it. The **Empty quarantine** button
+on the start screen permanently deletes the videos in that folder and their
+thumbs, telling you first how many they are and how much space that gives back.
+The thumbs of videos still pending are left alone. This cannot be undone.
+
+### 6. How much will be left
 
 The question the volume panel answers: *what size will this folder settle at once
 I'm done triaging everything?*
@@ -264,7 +295,7 @@ that it would be 0% or 100%. Since the size only started being written to the
 history in this version, decisions you made earlier don't count — the projection
 starts to mean something after the next few sessions.
 
-### 6. Stopping halfway and picking it up later
+### 7. Stopping halfway and picking it up later
 
 A folder with thousands of videos doesn't fit one sitting, and interruptions
 don't announce themselves. There are two ways to drop a session halfway, for two
@@ -345,11 +376,13 @@ video_manager/
 ├── icons.py       loads the app icon
 ├── icons/         the icon itself (hicolor sizes + SVG)
 ├── library.py     scanning, video↔thumb pairing, saved session, quarantine
+├── metadata.py    file data for the header (os.stat, OpenCV, ffprobe)
 ├── shortcuts.py   review actions and the keys that trigger them
-├── thumbs.py      frame extraction and grid assembly (the notebook's engine)
+├── thumbs.py      frame extraction, header and grid assembly
 ├── worker.py      generation on a separate thread
 ├── ui_setup.py    start screen
 ├── ui_review.py   review screen
+├── ui_header.py   header information dialog
 ├── ui_shortcuts.py  key customisation dialog
 └── app.py         main window
 ```
