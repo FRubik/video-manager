@@ -413,12 +413,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "app.gen.progress.title": {"pt": "Processando", "en": "Working"},
     "app.gen.progress.label": {"pt": "Gerando thumbnails…", "en": "Generating thumbnails…"},
     "app.gen.progress.detail": {
-        "pt": "Vídeos: {done}/{total} · frames: {frames}/{frames_total}\n{name}",
-        "en": "Videos: {done}/{total} · frames: {frames}/{frames_total}\n{name}",
-    },
-    "app.gen.progress.waiting": {
-        "pt": "os primeiros vídeos estão sendo lidos…",
-        "en": "reading the first videos…",
+        "pt": "Vídeos: {done}/{total} · frames: {frames}/{frames_total}",
+        "en": "Videos: {done}/{total} · frames: {frames}/{frames_total}",
     },
     "app.gen.cancelling": {
         "pt": "Cancelando… o vídeo em curso para no próximo frame.",

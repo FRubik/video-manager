@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
         #: pasta da última geração, citada no aviso de conclusão
         self._last_thumbs_dir = ""
         #: vídeos já concluídos no lote corrente, para o texto do progresso
-        self._generated = (0, 0, "")
+        self._generated = (0, 0)
         # a barra anda por frame, e não por vídeo: num 4K de vários GB um único
         # vídeo leva minutos, e a barra parada passava a impressão de travamento
         self._gen_timer = QTimer(self)
@@ -182,7 +182,7 @@ class MainWindow(QMainWindow):
             workers=config.workers,
         )
 
-        self._generated = (0, len(pending), "")
+        self._generated = (0, len(pending))
         self._worker = ThumbWorker(pending, thumbs_dir, opts, parent=self)
 
         self._progress = QProgressDialog(
@@ -212,8 +212,8 @@ class MainWindow(QMainWindow):
             self._progress.setLabelText(tr("app.gen.cancelling"))
             self._progress.show()
 
-    def _on_generation_progress(self, done: int, total: int, name: str) -> None:
-        self._generated = (done, total, name)
+    def _on_generation_progress(self, done: int, total: int) -> None:
+        self._generated = (done, total)
         self._tick_generation()
 
     def _tick_generation(self) -> None:
@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
         worker = self._worker
         if dialog is None or worker is None:
             return
-        done, total, name = self._generated
+        done, total = self._generated
         if not worker.cancelled:
             dialog.setLabelText(
                 tr(
@@ -233,7 +233,6 @@ class MainWindow(QMainWindow):
                     total=total,
                     frames=worker.frames_done,
                     frames_total=worker.frames_total,
-                    name=name or tr("app.gen.progress.waiting"),
                 )
             )
         dialog.setValue(min(worker.frames_done, worker.frames_total))

@@ -12,7 +12,7 @@ from .thumbs import ThumbOptions, ThumbResult
 
 
 class ThumbWorker(QThread):
-    progress = Signal(int, int, str)  # concluídos, total, último nome processado
+    progress = Signal(int, int)  # concluídos, total
     finished_with_results = Signal(list)
 
     def __init__(self, videos: list[Path], output_dir: Path, opts: ThumbOptions, parent=None):
@@ -49,7 +49,7 @@ class ThumbWorker(QThread):
 
     def run(self) -> None:
         def on_progress(done: int, total: int, result: ThumbResult) -> None:
-            self.progress.emit(done, total, result.video.name)
+            self.progress.emit(done, total)
 
         results = thumbs.generate(
             self._videos,
