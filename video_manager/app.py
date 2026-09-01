@@ -54,10 +54,11 @@ class MainWindow(QMainWindow):
         self._pending_config: Config | None = None
         #: a geração corrente abre a revisão no fim, ou volta para a tela inicial
         self._review_after_generation = True
-        #: pasta da última geração, citada no aviso de conclusão
+        #: pastas da última geração, citadas nos avisos de conclusão e de falha
         self._last_thumbs_dir = ""
+        self._last_videos_dir = ""
         #: vídeos já concluídos no lote corrente, para o texto do progresso
-        self._generated = (0, 0, "")
+        self._generated = (0, 0)
         # a barra anda por frame, e não por vídeo: num 4K de vários GB um único
         # vídeo leva minutos, e a barra parada passava a impressão de travamento
         self._gen_timer = QTimer(self)
@@ -182,7 +183,7 @@ class MainWindow(QMainWindow):
             workers=config.workers,
         )
 
-        self._generated = (0, len(pending), "")
+        self._generated = (0, len(pending))
         self._worker = ThumbWorker(pending, thumbs_dir, opts, parent=self)
 
         self._progress = QProgressDialog(
@@ -196,6 +197,7 @@ class MainWindow(QMainWindow):
         self._progress.canceled.connect(self._cancel_generation)
 
         self._last_thumbs_dir = str(thumbs_dir)
+        self._last_videos_dir = str(videos_dir)
         self._worker.progress.connect(self._on_generation_progress)
         self._worker.finished_with_results.connect(self._on_generation_finished)
         self._worker.start()
@@ -212,8 +214,8 @@ class MainWindow(QMainWindow):
             self._progress.setLabelText(tr("app.gen.cancelling"))
             self._progress.show()
 
-    def _on_generation_progress(self, done: int, total: int, name: str) -> None:
-        self._generated = (done, total, name)
+    def _on_generation_progress(self, done: int, total: int) -> None:
+        self._generated = (done, total)
         self._tick_generation()
 
     def _tick_generation(self) -> None:
@@ -224,27 +226,35 @@ class MainWindow(QMainWindow):
         worker = self._worker
         if dialog is None or worker is None:
             return
-        done, total, name = self._generated
+        done, total = self._generated
+        # o total cresce quando um vídeo cai no ffmpeg (AV1): a segunda passada
+        # traz mais frames a fazer, e a barra precisa acompanhar
+        dialog.setMaximum(worker.frames_total)
         if not worker.cancelled:
-            dialog.setLabelText(
-                tr(
-                    "app.gen.progress.detail",
-                    done=done,
-                    total=total,
-                    frames=worker.frames_done,
-                    frames_total=worker.frames_total,
-                    name=name or tr("app.gen.progress.waiting"),
-                )
+            texto = tr(
+                "app.gen.progress.detail",
+                done=done,
+                total=total,
+                frames=worker.frames_done,
+                frames_total=worker.frames_total,
             )
+            if worker.ffmpeg_fallbacks:
+                texto += "\n" + tr("app.gen.progress.ffmpeg", n=worker.ffmpeg_fallbacks)
+            dialog.setLabelText(texto)
         dialog.setValue(min(worker.frames_done, worker.frames_total))
 
     def _on_generation_finished(self, results: list) -> None:
         self._gen_timer.stop()
-        if self._progress is not None:
-            self._progress.close()
-            self._progress = None
+        # ler o estado do worker ANTES de mexer no diálogo: fechar um
+        # QProgressDialog emite `canceled`, e deixar isso chegar ao
+        # `_cancel_generation` marcaria como cancelada uma geração que terminou
+        # sozinha — era o que fazia a mensagem final falar em cancelamento.
         cancelled = self._worker is not None and self._worker.cancelled
         self._worker = None
+        if self._progress is not None:
+            self._progress.canceled.disconnect(self._cancel_generation)
+            self._progress.close()
+            self._progress = None
 
         # o que foi abortado a pedido do usuário não é falha do vídeo
         failures = [r for r in results if not r.ok and not r.cancelled]
@@ -253,16 +263,22 @@ class MainWindow(QMainWindow):
             detail = "\n".join(f"• {r.video.name}: {r.error}" for r in failures[:15])
             if len(failures) > 15:
                 detail += tr("app.gen.failed.more", n=len(failures) - 15)
-            QMessageBox.warning(
-                self,
-                tr("app.gen.failed.title"),
+            box = QMessageBox(self)
+            box.setIcon(QMessageBox.Warning)
+            box.setWindowTitle(tr("app.gen.failed.title"))
+            box.setText(
                 tr(
                     "app.gen.failed.body",
                     ok=len(results) - len(failures),
                     failed=len(failures),
                     detail=detail,
-                ),
+                )
             )
+            move_button = box.addButton(tr("app.gen.failed.move"), QMessageBox.ActionRole)
+            box.addButton(QMessageBox.Ok)
+            box.exec()
+            if box.clickedButton() is move_button:
+                self._move_failed([r.video for r in failures])
 
         if cancelled:
             # quem cancelou a geração não quer cair na revisão logo em seguida
@@ -286,6 +302,43 @@ class MainWindow(QMainWindow):
 
         if self._pending_config is not None:
             self._start_review(self._pending_config)
+
+    def _move_failed(self, videos: list[Path]) -> None:
+        """Junta numa subpasta os vídeos cuja thumbnail falhou, para conferir à mão.
+
+        A pasta é uma padrão dentro da pasta de vídeos (`_thumb_falhou`), não uma
+        das pastas gerenciadas pelo app: é só um canto para abrir os arquivos e
+        ver o que houve.
+        """
+        base = Path(self._last_videos_dir).expanduser() if self._last_videos_dir else None
+        if base is None or not base.is_dir():
+            base = videos[0].parent if videos else Path.home()
+        dest_dir = library.default_failed_dir(base)
+
+        answer = QMessageBox.question(
+            self,
+            tr("app.gen.failed.move.title"),
+            tr("app.gen.failed.move.body", count=len(videos), folder=str(dest_dir)),
+            QMessageBox.Yes | QMessageBox.Cancel,
+            QMessageBox.Cancel,
+        )
+        if answer != QMessageBox.Yes:
+            return
+
+        moved = 0
+        errors: list[str] = []
+        for video in videos:
+            try:
+                library.move_video(video, dest_dir, "thumb_failed")
+                moved += 1
+            except OSError as exc:
+                errors.append(f"• {video.name}: {exc}")
+
+        body = tr("app.gen.failed.moved.body", moved=moved, folder=str(dest_dir))
+        if errors:
+            body += tr("app.gen.failed.moved.errors", detail="\n".join(errors[:15]))
+        QMessageBox.information(self, tr("app.gen.failed.moved.title"), body)
+        self.setup_view.refresh_summary()
 
     # ------------------------------------------------------------- revisão
     def _start_review(self, config: Config) -> None:

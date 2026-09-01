@@ -562,6 +562,8 @@ TRASH_DIR_NAMES: dict[str, str] = {"pt": "_para_apagar", "en": "_to_delete"}
 MAYBE_DIR_NAMES: dict[str, str] = {"pt": "_talvez", "en": "_maybe"}
 #: "thumbs" já é o termo usado nos dois idiomas, sem tradução própria
 THUMBS_DIR_NAMES: dict[str, str] = {"pt": "thumbs", "en": "thumbs"}
+#: onde vão os vídeos cuja thumbnail falhou, para conferência à mão
+FAILED_DIR_NAMES: dict[str, str] = {"pt": "_thumb_falhou", "en": "_thumb_failed"}
 
 
 def default_trash_dir_name() -> str:
@@ -576,6 +578,10 @@ def default_thumbs_dir_name() -> str:
     return THUMBS_DIR_NAMES.get(i18n.current_language(), THUMBS_DIR_NAMES["en"])
 
 
+def default_failed_dir_name() -> str:
+    return FAILED_DIR_NAMES.get(i18n.current_language(), FAILED_DIR_NAMES["en"])
+
+
 def default_trash_dir(videos_dir: Path) -> Path:
     return videos_dir / default_trash_dir_name()
 
@@ -586,6 +592,10 @@ def default_maybe_dir(videos_dir: Path) -> Path:
 
 def default_thumbs_dir(videos_dir: Path) -> Path:
     return videos_dir / default_thumbs_dir_name()
+
+
+def default_failed_dir(videos_dir: Path) -> Path:
+    return videos_dir / default_failed_dir_name()
 
 
 def trash_dir_candidates(videos_dir: Path) -> set[Path]:

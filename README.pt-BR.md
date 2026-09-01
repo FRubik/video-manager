@@ -20,6 +20,9 @@ já gerou são reaproveitadas sem precisar gerar de novo.
 - Python 3.12
 - [uv](https://docs.astral.sh/uv/)
 - Uma sessão gráfica (Linux, macOS ou Windows)
+- `ffmpeg` no PATH — **opcional**, usado só como segundo caminho quando o OpenCV
+  não decodifica um vídeo (AV1, tipicamente). Sem ele, esses vídeos falham com
+  erro em vez de gerar a folha.
 
 ## Instalar
 
@@ -350,6 +353,14 @@ O tamanho da grade, por outro lado, é a alavanca barata: o custo é proporciona
 ao número de células, sem custo fixo por vídeo relevante para amortizar, então
 **cair de 5×5 para 3×3 corta cerca de 70% do tempo de geração** — com qualquer
 motor.
+
+O ffmpeg mantém um uso, porém: o **AV1**. Os wheels do `opencv-python` trazem um
+ffmpeg sem `dav1d`, só com o decoder de AV1 por hardware, e `cap.read()` falha em
+todos os frames de um vídeo AV1. Quando isso acontece e o `ffmpeg` do sistema
+está no PATH, um segundo caminho reextrai os frames com ele — um processo por
+frame, com seek preciso (é o caso raro; a precisão vale mais que os
+milissegundos economizados). Sem o ffmpeg, o vídeo falha com erro em vez de
+salvar uma folha preta.
 
 ## Contribuindo
 
