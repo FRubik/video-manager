@@ -26,9 +26,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from . import i18n, library
+from . import i18n, library, metadata
 from .config import Config
 from .i18n import tr
+from .ui_header import HeaderFieldsDialog
 from .ui_shortcuts import ShortcutsDialog
 
 
@@ -201,6 +202,17 @@ class SetupView(QWidget):
 
         self.add_timestamp = QCheckBox()
         gen_form.addRow(self.add_timestamp)
+
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)  # alinha com as outras opções
+        self.header = QCheckBox()
+        self.header_button = QPushButton()
+        self.header_button.clicked.connect(self._edit_header_fields)
+        self.header.toggled.connect(self.header_button.setEnabled)
+        header_row.addWidget(self.header)
+        header_row.addWidget(self.header_button)
+        header_row.addStretch()
+        gen_form.addRow(self._wrap(header_row))
         root.addWidget(self.gen_group)
 
         self.gen_group.toggled.connect(self.refresh_summary)
@@ -368,6 +380,10 @@ class SetupView(QWidget):
         self.margin_label.setText(tr("setup.gen.margin"))
         self.workers_label.setText(tr("setup.gen.workers"))
         self.add_timestamp.setText(tr("setup.gen.timestamp"))
+        self.header.setText(tr("setup.gen.header"))
+        self.header.setToolTip(tr("setup.gen.header.tip"))
+        self.header_button.setText(tr("setup.gen.header.choose"))
+        self.header_button.setToolTip(tr("setup.gen.header.choose.tip"))
 
         # --- sessão ---
         self.session_group.setTitle(tr("setup.session"))
@@ -437,6 +453,9 @@ class SetupView(QWidget):
         self.margin.setValue(c.margin)
         self.workers.setValue(c.workers)
         self.add_timestamp.setChecked(c.add_timestamp)
+        self.header.setChecked(c.header)
+        self.header_button.setEnabled(c.header)
+        self._header_fields = metadata.normalize(c.header_fields)
         self.mode_random.setChecked(c.random_session)
         self.mode_all.setChecked(not c.random_session)
         self.session_size.setValue(c.session_size)
@@ -475,6 +494,8 @@ class SetupView(QWidget):
         c.margin = self.margin.value()
         c.workers = self.workers.value()
         c.add_timestamp = self.add_timestamp.isChecked()
+        c.header = self.header.isChecked()
+        c.header_fields = list(self._header_fields)
         c.random_session = self.mode_random.isChecked()
         c.session_size = self.session_size.value()
         c.skip_reviewed = self.skip_reviewed.isChecked()
@@ -482,6 +503,13 @@ class SetupView(QWidget):
         c.only_maybe = self.maybe_only.isChecked()
         c.include_maybe = self.maybe_include.isChecked()
         return c
+
+    def _edit_header_fields(self) -> None:
+        """Escolha das informações do cabeçalho; a config só muda no “Ok”."""
+        dialog = HeaderFieldsDialog(self._header_fields, self)
+        if dialog.exec() != HeaderFieldsDialog.Accepted:
+            return
+        self._header_fields = dialog.selection()
 
     def _edit_shortcuts(self) -> None:
         dialog = ShortcutsDialog(self.config.key_bindings, self)

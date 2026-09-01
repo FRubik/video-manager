@@ -97,6 +97,8 @@ STRINGS: dict[str, dict[str, str]] = {
     # só campos numéricos: `%b`/`%A` sairiam no idioma do locale do sistema,
     # que não tem relação com o idioma escolhido aqui
     "format.datetime": {"pt": "%d/%m às %H:%M", "en": "%m/%d at %H:%M"},
+    # no cabeçalho da folha o ano importa: dois arquivos iguais de anos diferentes
+    "format.file_datetime": {"pt": "%d/%m/%Y %H:%M", "en": "%Y-%m-%d %H:%M"},
 
     # ------------------------------------------------------------- decisões
     "decision.keep": {"pt": "manter", "en": "keep"},
@@ -175,6 +177,83 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt": "Escrever o tempo em cada frame",
         "en": "Stamp the timestamp on each frame",
     },
+    "setup.gen.header": {
+        "pt": "Cabeçalho com as informações do arquivo",
+        "en": "Header with the file information",
+    },
+    "setup.gen.header.tip": {
+        "pt": "Faixa no topo da folha com nome, tamanho, resolução e duração — o que não "
+              "se vê nos frames. Vale só para as folhas geradas daqui em diante.",
+        "en": "A band at the top of the sheet with name, size, resolution and duration — "
+              "what the frames don’t show. Only applies to sheets generated from now on.",
+    },
+    "setup.gen.header.choose": {"pt": "Escolher informações…", "en": "Choose information…"},
+    "setup.gen.header.choose.tip": {
+        "pt": "Escolhe quais informações entram no cabeçalho.",
+        "en": "Picks which pieces of information go into the header.",
+    },
+
+    # ------------------------------------------ diálogo: informações do cabeçalho
+    "header.title": {
+        "pt": "Informações do cabeçalho",
+        "en": "Header information",
+    },
+    "header.intro": {
+        "pt": "O que aparece na faixa no topo de cada folha nova.",
+        "en": "What shows up in the band at the top of every new sheet.",
+    },
+    "header.note": {
+        "pt": "As folhas já geradas não mudam — o cabeçalho vale para as próximas. "
+              "Um campo sem dado (vídeo sem áudio, por exemplo) é simplesmente omitido.",
+        "en": "Sheets already generated don’t change — the header applies to the next ones. "
+              "A field with nothing to say (a video with no audio, say) is left out.",
+    },
+    "header.ffprobe.missing": {
+        "pt": "Os campos marcados com * dependem do `ffprobe` (parte do ffmpeg), que não "
+              "está instalado nesta máquina. Eles ficam de fora até que esteja.",
+        "en": "The fields marked with * need `ffprobe` (part of ffmpeg), which is not "
+              "installed on this machine. They stay out until it is.",
+    },
+    "header.field.name": {"pt": "Nome do arquivo", "en": "File name"},
+    "header.field.size": {"pt": "Tamanho em disco", "en": "Size on disk"},
+    "header.field.bitrate": {
+        "pt": "Bitrate total (na linha do tamanho)",
+        "en": "Total bitrate (on the size line)",
+    },
+    "header.field.modified": {
+        "pt": "Data de modificação (na linha do tamanho)",
+        "en": "Modification date (on the size line)",
+    },
+    "header.field.resolution": {"pt": "Resolução e fps", "en": "Resolution and fps"},
+    "header.field.duration": {"pt": "Duração", "en": "Duration"},
+    "header.field.video": {
+        "pt": "Vídeo: codec, perfil e bitrate",
+        "en": "Video: codec, profile and bitrate",
+    },
+    "header.field.pixel_format": {
+        "pt": "Profundidade de bits e croma (na linha do vídeo)",
+        "en": "Bit depth and chroma (on the video line)",
+    },
+    "header.field.audio": {
+        "pt": "Áudio: codec, bitrate, frequência e canais",
+        "en": "Audio: codec, bitrate, sample rate and channels",
+    },
+    "header.field.audio_streams": {
+        "pt": "Número de faixas de áudio, quando houver mais de uma",
+        "en": "Number of audio tracks, when there is more than one",
+    },
+
+    # ------------------------------------------------ folha: rótulos do cabeçalho
+    "sheet.header.name": {"pt": "Arquivo", "en": "File Name"},
+    "sheet.header.size": {"pt": "Tamanho", "en": "File Size"},
+    "sheet.header.resolution": {"pt": "Resolução", "en": "Resolution"},
+    "sheet.header.duration": {"pt": "Duração", "en": "Duration"},
+    "sheet.header.video": {"pt": "Vídeo", "en": "Video"},
+    "sheet.header.audio": {"pt": "Áudio", "en": "Audio"},
+    "sheet.value.channel": {"pt": "{n} canal", "en": "{n} channel"},
+    "sheet.value.channels": {"pt": "{n} canais", "en": "{n} channels"},
+    "sheet.value.streams": {"pt": "{n} faixas", "en": "{n} streams"},
+    "sheet.value.bit_depth": {"pt": "{n} bits", "en": "{n} bit"},
 
     # ------------------------------------------------------- tela: sessão
     "setup.session": {"pt": "Sessão de revisão", "en": "Review session"},

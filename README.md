@@ -20,9 +20,11 @@ reused instead of being made again.
 - Python 3.12
 - [uv](https://docs.astral.sh/uv/)
 - A desktop session (Linux, macOS or Windows)
-- `ffmpeg` on the PATH — **optional**, used only as a second path when OpenCV
-  cannot decode a video (AV1, typically). Without it, those videos fail with an
-  error instead of producing the sheet.
+- `ffmpeg` on the PATH — **optional**, used as a second path when OpenCV cannot
+  decode a video (AV1, typically); without it, those videos fail with an error
+  instead of producing the sheet. `ffprobe`, which ships with it, is what fills
+  in the codec, bitrate and audio lines of the sheet header — without it the
+  header falls back to what OpenCV already knows.
 
 ## Install
 
@@ -117,6 +119,15 @@ you already have.
   using existing thumbnails. Checked, it generates first — with the *only videos
   that have no thumbnail yet* option, which is the common case when you add new
   videos, and also when a run stopped halfway: only the gaps are filled.
+- **Header with the file information**: a band at the top of every sheet with
+  name, size, resolution, duration and — when `ffprobe` is around — codec,
+  profile, bitrate and the audio track. The **Choose information…** button opens
+  the list of what goes in: the six lines come checked, plus unchecked extras
+  (total bitrate, modification date, bit depth and chroma, number of audio
+  tracks). The program mark — icon, name and address in grey — always sits on
+  the right of the band, and only steps aside when the grid is too narrow for
+  it. The header applies to sheets generated from then on; the older ones stay
+  as they are.
 - **Generate thumbnails only**: the button next to *Start* generates and returns
   to the start screen, without opening the review — to prepare a folder now and
   triage it later. It obeys the same options as the box above and leaves any

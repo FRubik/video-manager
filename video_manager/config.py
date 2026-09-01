@@ -6,7 +6,7 @@ import json
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
-from . import shortcuts
+from . import metadata, shortcuts
 
 CONFIG_PATH = Path.home() / ".config" / "video_manager" / "config.json"
 
@@ -31,6 +31,10 @@ class Config:
     margin: float = 0.05
     workers: int = 6
     add_timestamp: bool = True
+    #: faixa de informações no topo da folha
+    header: bool = True
+    #: quais informações entram nela (chaves de `metadata.FIELDS`)
+    header_fields: list = field(default_factory=lambda: list(metadata.DEFAULTS))
 
     # sessão de revisão
     random_session: bool = False
@@ -60,6 +64,7 @@ class Config:
         config = cls(**{k: v for k, v in raw.items() if k in known})
         # configs antigas não têm a chave, e uma ação nova precisa do padrão
         config.key_bindings = shortcuts.normalize(config.key_bindings)
+        config.header_fields = metadata.normalize(config.header_fields)
         return config
 
     def save(self) -> None:

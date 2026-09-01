@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
+import functools
 import shutil
 import subprocess
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Iterable
 
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
+from . import metadata
 from .i18n import tr
 from .library import launch_env, thumb_output_name
+from .metadata import VideoInfo
 
 
 @dataclass
@@ -25,6 +28,10 @@ class ThumbOptions:
     margin: float = 0.05  # ignora os primeiros/últimos X% do vídeo
     add_timestamp: bool = True
     workers: int = 6
+    #: faixa superior com os dados do arquivo
+    header: bool = True
+    #: quais informações entram nela (chaves de `metadata.FIELDS`)
+    header_fields: list[str] = field(default_factory=lambda: list(metadata.DEFAULTS))
 
 
 @dataclass
@@ -148,10 +155,171 @@ def _ffmpeg_one_frame(video_path: Path, t: float) -> np.ndarray | None:
     return cv2.imdecode(np.frombuffer(proc.stdout, dtype=np.uint8), cv2.IMREAD_COLOR)
 
 
+# ------------------------------------------------------------------ cabeçalho
+
+HEADER_BG = (46, 46, 46)
+HEADER_FG = (255, 255, 255)
+HEADER_DIM = (170, 170, 170)
+WATERMARK_FG = (124, 124, 124)
+
+#: marca do programa, à direita da faixa — fixa, não traduzida
+WATERMARK_TITLE = "VIDEO MANAGER"
+WATERMARK_SUB = "github.com/FRubik/video-manager"
+
+#: mesmo ícone de `icons.py`, lido daqui pelo caminho para não arrastar o Qt
+#: para dentro do motor de geração
+LOGO_PATH = Path(__file__).parent / "icons" / "hicolor" / "256x256" / "apps" / "video-manager.png"
+
+#: cinza do ponto mais claro do logo depois de recolorido, contra os 46 do
+#: fundo — o ícone colorido, com o fundo escuro dele, virava um bloco no meio
+#: da faixa em vez de fazer par com o texto da marca
+LOGO_PEAK = 168
+
+#: primeira que existir no sistema; a ordem cobre Linux, Windows e macOS
+_FONT_FILES: dict[bool, tuple[str, ...]] = {
+    False: (
+        "DejaVuSans.ttf", "LiberationSans-Regular.ttf", "NotoSans-Regular.ttf",
+        "arial.ttf", "Arial.ttf", "Helvetica.ttc",
+    ),
+    True: (
+        "DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf", "NotoSans-Bold.ttf",
+        "arialbd.ttf", "Arial Bold.ttf", "Helvetica.ttc",
+    ),
+}
+
+
+@functools.lru_cache(maxsize=None)
+def _font(size: int, bold: bool = False):
+    """Uma TrueType do sistema no tamanho pedido.
+
+    A `load_default()` do Pillow é bitmap de 11px e, mesmo na variante
+    escalável (a embutida Aileron), **não tem os acentos** — nome de arquivo em
+    português sairia com caixinhas. Por isso ela é o último recurso, não a
+    primeira escolha; qualquer sistema com fontes instaladas cai antes.
+    """
+    for name in _FONT_FILES[bold]:
+        try:
+            return ImageFont.truetype(name, size)
+        except OSError:
+            continue
+    try:
+        return ImageFont.load_default(size=size)  # Pillow >= 10.1
+    except TypeError:  # pragma: no cover — Pillow antigo
+        return ImageFont.load_default()
+
+
+@functools.lru_cache(maxsize=None)
+def _logo(height: int):
+    """O ícone do programa na altura pedida, em cinza, ou None se não houver.
+
+    O ícone é recolorido em vez de colado como está: `autocontrast` estica a
+    luminância, e a rampa leva o fundo escuro dele para o cinza da faixa e os
+    cartões claros para o tom do texto da marca. O resultado é um desenho no
+    mesmo peso do "VIDEO MANAGER" ao lado, não um adesivo.
+    """
+    try:
+        with Image.open(LOGO_PATH) as arquivo:
+            logo = arquivo.convert("RGBA")
+    except (OSError, ValueError):
+        return None
+    width = max(1, round(height * logo.width / logo.height))
+    logo = logo.resize((width, height), Image.LANCZOS)
+
+    base, peak = HEADER_BG[0], LOGO_PEAK
+    # o expoente afunda as sombras: o fundo do ícone encosta no da faixa e só
+    # os cartões ficam de pé
+    rampa = [round(base + (peak - base) * (v / 255) ** 1.7) for v in range(256)]
+    cinza = ImageOps.autocontrast(logo.convert("L")).point(rampa)
+    return Image.merge("RGB", (cinza, cinza, cinza)), logo.getchannel("A")
+
+
+def _ellipsize(text: str, font, max_width: float) -> str:
+    """Corta no meio, não no fim: é o fim do nome que costuma identificar o vídeo."""
+    if font.getlength(text) <= max_width:
+        return text
+    head, tail = len(text) // 2, len(text) - len(text) // 2
+    while head + tail > 4:
+        if head > tail:
+            head -= 1
+        else:
+            tail -= 1
+        candidate = f"{text[:head]}…{text[len(text) - tail:]}"
+        if font.getlength(candidate) <= max_width:
+            return candidate
+    return "…"
+
+
+def _header_image(width: int, lines: list[tuple[str, str]]):
+    """Faixa superior com os dados do arquivo, na largura da grade.
+
+    O corpo da fonte acompanha a largura da folha: uma grade de 1 coluna tem
+    ~355px e a mesma fonte de uma de 5 colunas ficaria ilegível de tão grande.
+    O teto e o entrelinha são apertados de propósito — numa grade 5x5 a faixa
+    chegava a ficar mais alta que uma linha inteira de frames.
+    """
+    if not lines:
+        return None
+
+    size = max(9, min(17, round(width / 92)))
+    font = _font(size, True)  # negrito, como na folha do Video Thumbnails Maker
+    pad_x = max(8, round(width * 0.01))
+    line_h = round(size * 1.4)
+    pad_y = max(4, round(size * 0.4))
+
+    mark_font = _font(max(size, round(size * 2.1)), True)
+    sub_font = _font(max(8, round(size * 0.85)))
+    block_h = mark_font.size + sub_font.size + 4
+    # a faixa nunca é mais baixa que a marca: com poucas informações escolhidas
+    # ela vazaria pelo corte da folha
+    height = max(pad_y * 2 + line_h * len(lines), pad_y * 2 + block_h)
+
+    image = Image.new("RGB", (width, height), HEADER_BG)
+    draw = ImageDraw.Draw(image)
+
+    label_w = max((font.getlength(label) for label, _ in lines), default=0.0)
+    colon_x = pad_x + label_w + size * 0.6
+    value_x = colon_x + size * 0.8
+
+    # a marca do programa: logo + nome + endereço, encostados na direita. Numa
+    # grade estreita ela não cabe sem comer a linha do nome do arquivo, que é a
+    # que interessa — aí simplesmente não é desenhada.
+    text_w = max(mark_font.getlength(WATERMARK_TITLE), sub_font.getlength(WATERMARK_SUB))
+    logo = _logo(block_h)
+    mark_w = text_w + (logo[0].width + round(size * 0.7) if logo else 0)
+    if width < 640 or mark_w > width * 0.4 or value_x + mark_w + size * 8 > width:
+        mark_w = 0.0
+    else:
+        top = max(pad_y, (height - block_h) // 2)
+        right = width - pad_x
+        draw.text((right, top), WATERMARK_TITLE, font=mark_font,
+                  fill=WATERMARK_FG, anchor="ra")
+        draw.text((right, top + mark_font.size + 4), WATERMARK_SUB, font=sub_font,
+                  fill=WATERMARK_FG, anchor="ra")
+        if logo is not None:
+            desenho, mascara = logo
+            image.paste(desenho, (round(right - text_w - size * 0.7) - desenho.width, top),
+                        mascara)
+
+    available = width - value_x - pad_x - (mark_w + size * 1.5 if mark_w else 0)
+    for row, (label, value) in enumerate(lines):
+        y = pad_y + row * line_h
+        draw.text((pad_x, y), label, font=font, fill=HEADER_FG)
+        draw.text((colon_x, y), ":", font=font, fill=HEADER_DIM)
+        draw.text((value_x, y), _ellipsize(value, font, available),
+                  font=font, fill=HEADER_FG)
+    return image
+
+
 def _compose(
-    frames: list[np.ndarray | None], times: np.ndarray, opts: ThumbOptions
+    frames: list[np.ndarray | None],
+    times: np.ndarray,
+    opts: ThumbOptions,
+    info: VideoInfo | None = None,
 ) -> Image.Image:
-    """Monta a grade a partir dos frames; posições sem frame ficam pretas."""
+    """Monta a grade a partir dos frames; posições sem frame ficam pretas.
+
+    Com `opts.header` e um `info`, a folha ganha a faixa de dados no topo.
+    """
     reference = next(f for f in frames if f is not None)
     fh, fw = reference.shape[:2]
     aspect_ratio = fw / fh if fh > 0 else 16 / 9
@@ -176,7 +344,43 @@ def _compose(
     grid = Image.new("RGB", (cell_w * opts.n_cols, cell_h * opts.n_rows), (0, 0, 0))
     for idx, cell in enumerate(cells):
         grid.paste(cell, ((idx % opts.n_cols) * cell_w, (idx // opts.n_cols) * cell_h))
-    return grid
+
+    if not opts.header or info is None:
+        return grid
+    header = _header_image(grid.width, metadata.header_lines(info, opts.header_fields))
+    if header is None:
+        return grid
+    sheet = Image.new("RGB", (grid.width, header.height + grid.height), HEADER_BG)
+    sheet.paste(header, (0, 0))
+    sheet.paste(grid, (0, header.height))
+    return sheet
+
+
+def _collect_info(
+    video_path: Path,
+    cap: cv2.VideoCapture,
+    fps: float,
+    duration: float,
+    opts: ThumbOptions,
+) -> VideoInfo | None:
+    """Dados do arquivo para o cabeçalho, ou None quando ele está desligado.
+
+    O `ffprobe` só é chamado se alguma informação escolhida depender dele — é
+    um subprocesso por vídeo, e quem quer só nome, tamanho e duração não paga
+    por ele. Sem `ffprobe` no PATH, `probe` devolve o que já havia.
+    """
+    if not opts.header:
+        return None
+    info = metadata.from_capture(
+        video_path,
+        int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+        int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+        fps,
+        duration,
+    )
+    if metadata.needs_ffprobe(opts.header_fields):
+        info = metadata.probe(info)
+    return info
 
 
 def extract_sheet(
@@ -212,6 +416,7 @@ def extract_sheet(
             return ThumbResult(video_path, False, tr("error.thumb.metadata"))
 
         duration = total_frames / fps
+        info = _collect_info(video_path, cap, fps, duration, opts)
         start_time, end_time = _time_window(duration, opts.margin)
         n_thumbs = opts.n_rows * opts.n_cols
         times = np.linspace(start_time, end_time, n_thumbs + 2)[1:-1]
@@ -233,7 +438,13 @@ def extract_sheet(
         if not any(f is not None for f in frames):
             return ThumbResult(video_path, False, tr("error.thumb.frames"))
 
-        sheet = _compose(frames, times, opts)
+        if info is not None and not (info.width and info.height):
+            # AV1 e afins: o OpenCV abre o arquivo mas não devolve a resolução;
+            # o frame que sobreviveu à extração sabe dizer qual é
+            reference = next(f for f in frames if f is not None)
+            info.height, info.width = reference.shape[:2]
+
+        sheet = _compose(frames, times, opts, info)
         sheet.save(output_dir / thumb_output_name(video_path), "JPEG", quality=90)
         return ThumbResult(video_path, True)
 

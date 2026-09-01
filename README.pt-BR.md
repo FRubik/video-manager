@@ -20,9 +20,11 @@ já gerou são reaproveitadas sem precisar gerar de novo.
 - Python 3.12
 - [uv](https://docs.astral.sh/uv/)
 - Uma sessão gráfica (Linux, macOS ou Windows)
-- `ffmpeg` no PATH — **opcional**, usado só como segundo caminho quando o OpenCV
-  não decodifica um vídeo (AV1, tipicamente). Sem ele, esses vídeos falham com
-  erro em vez de gerar a folha.
+- `ffmpeg` no PATH — **opcional**, usado como segundo caminho quando o OpenCV
+  não decodifica um vídeo (AV1, tipicamente); sem ele, esses vídeos falham com
+  erro em vez de gerar a folha. O `ffprobe`, que vem junto, é quem preenche as
+  linhas de codec, bitrate e áudio do cabeçalho da folha — sem ele o cabeçalho
+  sai reduzido, com o que o OpenCV já sabe.
 
 ## Instalar
 
@@ -115,6 +117,15 @@ pasta que você já tem.
   thumbs existentes. Marcado, gera antes — com a opção *somente vídeos que ainda
   não têm thumbnail*, que é o caso comum quando você adiciona vídeos novos, e
   também quando uma geração parou no meio: só o que ficou faltando é refeito.
+- **Cabeçalho com as informações do arquivo**: uma faixa no topo de cada folha
+  com nome, tamanho, resolução, duração e — quando há `ffprobe` — codec, perfil,
+  bitrate e a faixa de áudio. O botão **Escolher informações…** abre a lista do
+  que entra: as seis linhas vêm marcadas, e há extras desmarcados (bitrate total,
+  data de modificação, profundidade de bits e croma, número de faixas de áudio).
+  A marca do programa — ícone, nome e endereço em cinza — fica sempre à direita
+  da faixa, e sai de cena só quando a grade é estreita demais para ela. O
+  cabeçalho vale para as folhas geradas daí em diante; as antigas ficam como
+  estão.
 - **Somente gerar thumbnails**: o botão ao lado de *Iniciar* gera e volta para a
   tela inicial, sem abrir a revisão — para preparar uma pasta agora e triar
   depois. Ele obedece às mesmas opções do quadro acima e não mexe em nenhuma

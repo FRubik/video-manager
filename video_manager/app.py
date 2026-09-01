@@ -181,6 +181,8 @@ class MainWindow(QMainWindow):
             margin=config.margin,
             add_timestamp=config.add_timestamp,
             workers=config.workers,
+            header=config.header,
+            header_fields=list(config.header_fields),
         )
 
         self._generated = (0, len(pending))
