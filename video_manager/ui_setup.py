@@ -26,9 +26,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from . import i18n, library
+from . import i18n, library, metadata
 from .config import Config
 from .i18n import tr
+from .ui_header import HeaderFieldsDialog
 from .ui_shortcuts import ShortcutsDialog
 
 
@@ -182,16 +183,23 @@ class SetupView(QWidget):
         self.margin.setRange(0.0, 0.45)
         self.margin.setSingleStep(0.01)
         self.margin.setDecimals(2)
+        self.spacing = QSpinBox()
+        self.spacing.setRange(0, 40)
+        self.spacing.setSuffix(" px")
         self.workers = QSpinBox()
         self.workers.setRange(1, 32)
         self.cell_height_label = QLabel()
         self.margin_label = QLabel()
+        self.spacing_label = QLabel()
         self.workers_label = QLabel()
         detail_row.addWidget(self.cell_height_label)
         detail_row.addWidget(self.cell_height)
         detail_row.addSpacing(12)
         detail_row.addWidget(self.margin_label)
         detail_row.addWidget(self.margin)
+        detail_row.addSpacing(12)
+        detail_row.addWidget(self.spacing_label)
+        detail_row.addWidget(self.spacing)
         detail_row.addSpacing(12)
         detail_row.addWidget(self.workers_label)
         detail_row.addWidget(self.workers)
@@ -201,6 +209,20 @@ class SetupView(QWidget):
 
         self.add_timestamp = QCheckBox()
         gen_form.addRow(self.add_timestamp)
+
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)  # alinha com as outras opções
+        self.header = QCheckBox()
+        self.header_button = QPushButton()
+        self.header_button.clicked.connect(self._edit_header_fields)
+        self.header.toggled.connect(self.header_button.setEnabled)
+        self.gen_defaults_button = QPushButton()
+        self.gen_defaults_button.clicked.connect(self._restore_gen_defaults)
+        header_row.addWidget(self.header)
+        header_row.addWidget(self.header_button)
+        header_row.addStretch()
+        header_row.addWidget(self.gen_defaults_button)
+        gen_form.addRow(self._wrap(header_row))
         root.addWidget(self.gen_group)
 
         self.gen_group.toggled.connect(self.refresh_summary)
@@ -366,8 +388,27 @@ class SetupView(QWidget):
         self.details_label.setText(tr("setup.gen.details"))
         self.cell_height_label.setText(tr("setup.gen.cell_height"))
         self.margin_label.setText(tr("setup.gen.margin"))
+        self.spacing_label.setText(tr("setup.gen.spacing"))
         self.workers_label.setText(tr("setup.gen.workers"))
+        self.gen_defaults_button.setText(tr("setup.gen.defaults"))
+        self.gen_defaults_button.setToolTip(tr("setup.gen.defaults.tip"))
+        # a explicação de cada parâmetro vai no rótulo e no campo: quem passa o
+        # mouse pode estar mirando qualquer um dos dois
+        for chave, widgets in (
+            ("grid", (self.grid_label, self.rows_label, self.cols_label,
+                      self.n_rows, self.n_cols)),
+            ("cell_height", (self.cell_height_label, self.cell_height)),
+            ("margin", (self.margin_label, self.margin)),
+            ("spacing", (self.spacing_label, self.spacing)),
+            ("workers", (self.workers_label, self.workers)),
+        ):
+            for widget in widgets:
+                widget.setToolTip(tr(f"setup.gen.{chave}.tip"))
         self.add_timestamp.setText(tr("setup.gen.timestamp"))
+        self.header.setText(tr("setup.gen.header"))
+        self.header.setToolTip(tr("setup.gen.header.tip"))
+        self.header_button.setText(tr("setup.gen.header.choose"))
+        self.header_button.setToolTip(tr("setup.gen.header.choose.tip"))
 
         # --- sessão ---
         self.session_group.setTitle(tr("setup.session"))
@@ -435,8 +476,12 @@ class SetupView(QWidget):
         self.n_cols.setValue(c.n_cols)
         self.cell_height.setValue(c.cell_height)
         self.margin.setValue(c.margin)
+        self.spacing.setValue(c.spacing)
         self.workers.setValue(c.workers)
         self.add_timestamp.setChecked(c.add_timestamp)
+        self.header.setChecked(c.header)
+        self.header_button.setEnabled(c.header)
+        self._header_fields = metadata.normalize(c.header_fields)
         self.mode_random.setChecked(c.random_session)
         self.mode_all.setChecked(not c.random_session)
         self.session_size.setValue(c.session_size)
@@ -473,8 +518,11 @@ class SetupView(QWidget):
         c.n_cols = self.n_cols.value()
         c.cell_height = self.cell_height.value()
         c.margin = self.margin.value()
+        c.spacing = self.spacing.value()
         c.workers = self.workers.value()
         c.add_timestamp = self.add_timestamp.isChecked()
+        c.header = self.header.isChecked()
+        c.header_fields = list(self._header_fields)
         c.random_session = self.mode_random.isChecked()
         c.session_size = self.session_size.value()
         c.skip_reviewed = self.skip_reviewed.isChecked()
@@ -482,6 +530,31 @@ class SetupView(QWidget):
         c.only_maybe = self.maybe_only.isChecked()
         c.include_maybe = self.maybe_include.isChecked()
         return c
+
+    def _restore_gen_defaults(self) -> None:
+        """Devolve o quadro de geração aos valores de fábrica.
+
+        Só este quadro: pastas e sessão de revisão não são tocadas, e nada é
+        gravado até a próxima geração — desfazer é sair sem gerar.
+        """
+        padrao = Config()
+        self.only_missing.setChecked(padrao.only_missing)
+        self.n_rows.setValue(padrao.n_rows)
+        self.n_cols.setValue(padrao.n_cols)
+        self.cell_height.setValue(padrao.cell_height)
+        self.margin.setValue(padrao.margin)
+        self.spacing.setValue(padrao.spacing)
+        self.workers.setValue(padrao.workers)
+        self.add_timestamp.setChecked(padrao.add_timestamp)
+        self.header.setChecked(padrao.header)
+        self._header_fields = list(padrao.header_fields)
+
+    def _edit_header_fields(self) -> None:
+        """Escolha das informações do cabeçalho; a config só muda no “Ok”."""
+        dialog = HeaderFieldsDialog(self._header_fields, self)
+        if dialog.exec() != HeaderFieldsDialog.Accepted:
+            return
+        self._header_fields = dialog.selection()
 
     def _edit_shortcuts(self) -> None:
         dialog = ShortcutsDialog(self.config.key_bindings, self)

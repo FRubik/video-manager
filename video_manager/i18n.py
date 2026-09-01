@@ -97,6 +97,8 @@ STRINGS: dict[str, dict[str, str]] = {
     # só campos numéricos: `%b`/`%A` sairiam no idioma do locale do sistema,
     # que não tem relação com o idioma escolhido aqui
     "format.datetime": {"pt": "%d/%m às %H:%M", "en": "%m/%d at %H:%M"},
+    # no cabeçalho da folha o ano importa: dois arquivos iguais de anos diferentes
+    "format.file_datetime": {"pt": "%d/%m/%Y %H:%M", "en": "%Y-%m-%d %H:%M"},
 
     # ------------------------------------------------------------- decisões
     "decision.keep": {"pt": "manter", "en": "keep"},
@@ -167,14 +169,143 @@ STRINGS: dict[str, dict[str, str]] = {
     "setup.gen.grid": {"pt": "Grade:", "en": "Grid:"},
     "setup.gen.rows": {"pt": "linhas", "en": "rows"},
     "setup.gen.cols": {"pt": "colunas", "en": "columns"},
+    "setup.gen.grid.tip": {
+        "pt": "Quantos frames a folha tem: 5 × 5 = 25 instantes ao longo do vídeo. "
+              "É o que mais pesa no tempo de geração — o custo é por célula, então "
+              "uma 3 × 3 sai em cerca de um terço do tempo de uma 5 × 5.",
+        "en": "How many frames the sheet holds: 5 × 5 = 25 moments across the video. "
+              "It is what weighs most on generation time — the cost is per cell, so a "
+              "3 × 3 takes about a third of the time of a 5 × 5.",
+    },
     "setup.gen.details": {"pt": "Detalhes:", "en": "Details:"},
     "setup.gen.cell_height": {"pt": "altura da célula", "en": "cell height"},
+    "setup.gen.cell_height.tip": {
+        "pt": "Altura de cada frame na folha, em pixels; a largura sai sozinha da "
+              "proporção do vídeo (200 px num 16:9 dá células de 355 × 200). Decide o "
+              "tamanho da folha e o quanto se enxerga no zoom 1:1 da revisão — quase "
+              "não muda o tempo de geração.",
+        "en": "Height of each frame on the sheet, in pixels; the width follows the "
+              "video’s aspect ratio (200 px on a 16:9 gives 355 × 200 cells). It sets "
+              "the sheet size and how much you can see in the review’s 1:1 zoom — it "
+              "barely affects generation time.",
+    },
     "setup.gen.margin": {"pt": "margem", "en": "margin"},
+    "setup.gen.margin.tip": {
+        "pt": "Fatia do começo e do fim do vídeo que fica de fora. Com 0,05 os frames "
+              "saem entre 5% e 95% da duração, o que evita gastar células com a "
+              "abertura preta e com os créditos. Em 0,00 a folha cobre o vídeo inteiro.",
+        "en": "Slice of the start and the end left out. At 0.05 the frames are taken "
+              "between 5% and 95% of the runtime, which keeps cells from being spent on "
+              "a black opening and on credits. At 0.00 the sheet covers the whole video.",
+    },
+    "setup.gen.spacing": {"pt": "espaço", "en": "spacing"},
+    "setup.gen.spacing.tip": {
+        "pt": "Espaço em pixels entre os frames e na borda da folha. Em 0 as células "
+              "ficam coladas, como numa tira de filme; alguns pixels separam cenas "
+              "parecidas e deixam claro onde uma acaba e a outra começa.",
+        "en": "Space in pixels between the frames and around the sheet. At 0 the cells "
+              "sit flush, like a film strip; a few pixels pull similar scenes apart and "
+              "make it clear where one ends and the next begins.",
+    },
     "setup.gen.workers": {"pt": "threads", "en": "threads"},
+    "setup.gen.workers.tip": {
+        "pt": "Quantos vídeos são processados ao mesmo tempo — não quantos frames de um "
+              "mesmo vídeo, que saem sempre em sequência. Em disco interno rápido, mais "
+              "threads ajudam até o número de núcleos; em HD externo, 2 ou 3 costumam "
+              "render mais que 6, porque o gargalo passa a ser o disco.",
+        "en": "How many videos are processed at the same time — not how many frames of "
+              "one video, which always come in sequence. On a fast internal disk more "
+              "threads help up to the core count; on an external drive 2 or 3 often beat "
+              "6, because the bottleneck becomes the disk.",
+    },
+    "setup.gen.defaults": {"pt": "Restaurar padrões", "en": "Restore defaults"},
+    "setup.gen.defaults.tip": {
+        "pt": "Devolve as opções deste quadro aos valores de fábrica, inclusive as "
+              "informações do cabeçalho. As pastas e a sessão de revisão não mudam.",
+        "en": "Puts the options in this box back to their factory values, header "
+              "information included. Folders and the review session are left alone.",
+    },
     "setup.gen.timestamp": {
         "pt": "Escrever o tempo em cada frame",
         "en": "Stamp the timestamp on each frame",
     },
+    "setup.gen.header": {
+        "pt": "Cabeçalho com as informações do arquivo",
+        "en": "Header with the file information",
+    },
+    "setup.gen.header.tip": {
+        "pt": "Faixa no topo da folha com nome, tamanho, resolução e duração — o que não "
+              "se vê nos frames. Vale só para as folhas geradas daqui em diante.",
+        "en": "A band at the top of the sheet with name, size, resolution and duration — "
+              "what the frames don’t show. Only applies to sheets generated from now on.",
+    },
+    "setup.gen.header.choose": {"pt": "Escolher informações…", "en": "Choose information…"},
+    "setup.gen.header.choose.tip": {
+        "pt": "Escolhe quais informações entram no cabeçalho.",
+        "en": "Picks which pieces of information go into the header.",
+    },
+
+    # ------------------------------------------ diálogo: informações do cabeçalho
+    "header.title": {
+        "pt": "Informações do cabeçalho",
+        "en": "Header information",
+    },
+    "header.intro": {
+        "pt": "O que aparece na faixa no topo de cada folha nova.",
+        "en": "What shows up in the band at the top of every new sheet.",
+    },
+    "header.note": {
+        "pt": "As folhas já geradas não mudam — o cabeçalho vale para as próximas. "
+              "Um campo sem dado (vídeo sem áudio, por exemplo) é simplesmente omitido.",
+        "en": "Sheets already generated don’t change — the header applies to the next ones. "
+              "A field with nothing to say (a video with no audio, say) is left out.",
+    },
+    "header.ffprobe.missing": {
+        "pt": "Os campos marcados com * dependem do `ffprobe` (parte do ffmpeg), que não "
+              "está instalado nesta máquina. Eles ficam de fora até que esteja.",
+        "en": "The fields marked with * need `ffprobe` (part of ffmpeg), which is not "
+              "installed on this machine. They stay out until it is.",
+    },
+    "header.field.name": {"pt": "Nome do arquivo", "en": "File name"},
+    "header.field.size": {"pt": "Tamanho em disco", "en": "Size on disk"},
+    "header.field.bitrate": {
+        "pt": "Bitrate total (na linha do tamanho)",
+        "en": "Total bitrate (on the size line)",
+    },
+    "header.field.modified": {
+        "pt": "Data de modificação (na linha do tamanho)",
+        "en": "Modification date (on the size line)",
+    },
+    "header.field.resolution": {"pt": "Resolução e fps", "en": "Resolution and fps"},
+    "header.field.duration": {"pt": "Duração", "en": "Duration"},
+    "header.field.video": {
+        "pt": "Vídeo: codec, perfil e bitrate",
+        "en": "Video: codec, profile and bitrate",
+    },
+    "header.field.pixel_format": {
+        "pt": "Profundidade de bits e croma (na linha do vídeo)",
+        "en": "Bit depth and chroma (on the video line)",
+    },
+    "header.field.audio": {
+        "pt": "Áudio: codec, bitrate, frequência e canais",
+        "en": "Audio: codec, bitrate, sample rate and channels",
+    },
+    "header.field.audio_streams": {
+        "pt": "Número de faixas de áudio, quando houver mais de uma",
+        "en": "Number of audio tracks, when there is more than one",
+    },
+
+    # ------------------------------------------------ folha: rótulos do cabeçalho
+    "sheet.header.name": {"pt": "Arquivo", "en": "File Name"},
+    "sheet.header.size": {"pt": "Tamanho", "en": "File Size"},
+    "sheet.header.resolution": {"pt": "Resolução", "en": "Resolution"},
+    "sheet.header.duration": {"pt": "Duração", "en": "Duration"},
+    "sheet.header.video": {"pt": "Vídeo", "en": "Video"},
+    "sheet.header.audio": {"pt": "Áudio", "en": "Audio"},
+    "sheet.value.channel": {"pt": "{n} canal", "en": "{n} channel"},
+    "sheet.value.channels": {"pt": "{n} canais", "en": "{n} channels"},
+    "sheet.value.streams": {"pt": "{n} faixas", "en": "{n} streams"},
+    "sheet.value.bit_depth": {"pt": "{n} bits", "en": "{n} bit"},
 
     # ------------------------------------------------------- tela: sessão
     "setup.session": {"pt": "Sessão de revisão", "en": "Review session"},

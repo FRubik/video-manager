@@ -4,25 +4,44 @@
 
 *[Leia em português](README.pt-BR.md)*
 
-A desktop app (PySide6) that builds *contact sheets* for a folder of videos and
-lets you triage them from the keyboard: what stays, and what goes to quarantine.
+A desktop app (PySide6) for **managing a folder of videos**: seeing what is in
+it without opening one file at a time, deciding what stays and what goes,
+watching how much disk that frees, and stopping halfway to carry on another day.
 
-Built for the folder that grew past the point of watching everything again — a
-grid of frames is usually enough to decide, and the ones it isn't enough for get
-their own pile.
+Built for the folder that grew past the point of watching everything again. The
+central tool is the *contact sheet* — a grid of frames with a header carrying the
+file's data — and it is usually enough to decide; the videos it isn't enough for
+get a pile of their own instead of a rushed decision.
 
-The frame-extraction engine comes from the `Thumbnail Maker` notebook, naming
-convention included (`my_video.mp4.jpg`), so thumbnails you generated earlier are
-reused instead of being made again.
+What it does:
+
+- **Generates contact sheets** for a whole folder, in parallel, with a
+  configurable grid, size, spacing and trim, and a header with name, size,
+  resolution, duration, codec, bitrate and audio. You can use only this and
+  ignore the rest — the *Generate thumbnails only* button exists for that.
+- **Triages from the keyboard**, one sheet at a time: keep, delete, *maybe*, step
+  back, open in the player. Nothing is moved while you decide.
+- **Moves instead of deleting**: discards go to a quarantine, with a log of every
+  move, and only disappear for good when you say so.
+- **Remembers what you already decided**, so the same video doesn't come back
+  twice, and **resumes an interrupted session** exactly where it stopped.
+- **Projects the folder's final size** from what you have discarded so far.
+- Speaks **English and Portuguese**, with configurable keys.
+
+Thumbnails follow the `my_video.mp4.jpg` naming convention, the same one several
+contact-sheet generators use, so sheets you already have in a folder are
+recognised and reused instead of being made again.
 
 ## Requirements
 
 - Python 3.12
 - [uv](https://docs.astral.sh/uv/)
 - A desktop session (Linux, macOS or Windows)
-- `ffmpeg` on the PATH — **optional**, used only as a second path when OpenCV
-  cannot decode a video (AV1, typically). Without it, those videos fail with an
-  error instead of producing the sheet.
+- `ffmpeg` on the PATH — **optional**, used as a second path when OpenCV cannot
+  decode a video (AV1, typically); without it, those videos fail with an error
+  instead of producing the sheet. `ffprobe`, which ships with it, is what fills
+  in the codec, bitrate and audio lines of the sheet header — without it the
+  header falls back to what OpenCV already knows.
 
 ## Install
 
@@ -117,6 +136,28 @@ you already have.
   using existing thumbnails. Checked, it generates first — with the *only videos
   that have no thumbnail yet* option, which is the common case when you add new
   videos, and also when a run stopped halfway: only the gaps are filled.
+- **Grid and Details**: the five generation parameters, each explained in its own
+  field tooltip:
+
+  | Parameter | What it does |
+  | --- | --- |
+  | **Grid** (rows × columns) | How many frames the sheet holds. It is what weighs most on time: the cost is per cell, so a 3 × 3 takes about a third of the time of a 5 × 5. |
+  | **cell height** | Height of each frame, in pixels; the width follows the video’s aspect ratio (200 px on a 16:9 gives 355 × 200 cells). It sets the sheet size and how much you see in the 1:1 zoom — it barely affects generation time. |
+  | **margin** | The slice of the start and the end left out. At 0.05 the frames are taken between 5% and 95% of the runtime, which keeps cells from being spent on a black opening and on credits. |
+  | **spacing** | Pixels between the frames and around the sheet, in the same grey as the header. At 0 the cells sit flush, like a film strip; a few pixels pull similar scenes apart. |
+  | **threads** | How many **videos** are processed at the same time — not frames of one video, which always come in sequence. On a fast internal disk more threads help up to the core count; on an external drive 2 or 3 often beat 6, because the bottleneck becomes the disk. |
+
+  The **Restore defaults** button puts only this box back to its factory values —
+  folders and the review session are left alone.
+- **Header with the file information**: a band at the top of every sheet with
+  name, size, resolution, duration and — when `ffprobe` is around — codec,
+  profile, bitrate and the audio track. The **Choose information…** button opens
+  the list of what goes in: the six lines come checked, plus unchecked extras
+  (total bitrate, modification date, bit depth and chroma, number of audio
+  tracks). The program mark — icon, name and address in grey — always sits on
+  the right of the band, and only steps aside when the grid is too narrow for
+  it. The header applies to sheets generated from then on; the older ones stay
+  as they are.
 - **Generate thumbnails only**: the button next to *Start* generates and returns
   to the start screen, without opening the review — to prepare a folder now and
   triage it later. It obeys the same options as the box above and leaves any
@@ -127,6 +168,12 @@ minutes on its own, and a bar that only moves when a whole video finishes looks
 frozen. **Cancel** stops the video in progress at the next frame; whatever was
 generated stays on disk, and running again with *only videos that have no
 thumbnail yet* picks up where it stopped.
+
+If some video fails — a corrupt file, a codec not even ffmpeg opens — the closing
+notice lists the errors and offers to **move the failed ones** into a
+`_thumb_failed` folder inside the videos folder. It is a corner to inspect by
+hand: the app neither scans nor manages that folder, it just gathers what went
+wrong in one place. No thumbnail is touched.
 - **Review session**:
   - *Review every video* — goes through everything that has a thumbnail;
   - *Random check* — draws N videos and the session ends with them, to slice a
@@ -211,7 +258,15 @@ combining with the random check when the pile got too big for one sitting.
 - A move that fails (permissions, full disk) is **not** recorded in the history:
   the video shows up again in the next session, with the decision still to make.
 
-### 5. How much will be left
+### 5. Emptying the quarantine
+
+Moving to quarantine frees no disk — the video is still there, taking up the same
+space, until you decide you won't go back on it. The **Empty quarantine** button
+on the start screen permanently deletes the videos in that folder and their
+thumbs, telling you first how many they are and how much space that gives back.
+The thumbs of videos still pending are left alone. This cannot be undone.
+
+### 6. How much will be left
 
 The question the volume panel answers: *what size will this folder settle at once
 I'm done triaging everything?*
@@ -240,7 +295,7 @@ that it would be 0% or 100%. Since the size only started being written to the
 history in this version, decisions you made earlier don't count — the projection
 starts to mean something after the next few sessions.
 
-### 6. Stopping halfway and picking it up later
+### 7. Stopping halfway and picking it up later
 
 A folder with thousands of videos doesn't fit one sitting, and interruptions
 don't announce themselves. There are two ways to drop a session halfway, for two
@@ -321,11 +376,13 @@ video_manager/
 ├── icons.py       loads the app icon
 ├── icons/         the icon itself (hicolor sizes + SVG)
 ├── library.py     scanning, video↔thumb pairing, saved session, quarantine
+├── metadata.py    file data for the header (os.stat, OpenCV, ffprobe)
 ├── shortcuts.py   review actions and the keys that trigger them
-├── thumbs.py      frame extraction and grid assembly (the notebook's engine)
+├── thumbs.py      frame extraction, header and grid assembly
 ├── worker.py      generation on a separate thread
 ├── ui_setup.py    start screen
 ├── ui_review.py   review screen
+├── ui_header.py   header information dialog
 ├── ui_shortcuts.py  key customisation dialog
 └── app.py         main window
 ```

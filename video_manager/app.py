@@ -179,8 +179,11 @@ class MainWindow(QMainWindow):
             n_cols=config.n_cols,
             cell_height=config.cell_height,
             margin=config.margin,
+            spacing=config.spacing,
             add_timestamp=config.add_timestamp,
             workers=config.workers,
+            header=config.header,
+            header_fields=list(config.header_fields),
         )
 
         self._generated = (0, len(pending))

@@ -113,7 +113,8 @@ def find_thumb(video: Path, index: dict[str, Path]) -> Path | None:
 
 
 def thumb_output_name(video: Path) -> str:
-    """Nome do arquivo gerado — mantém a convenção do notebook original."""
+    """Nome do arquivo gerado — `meu_video.mp4.jpg`, a convenção usada por vários
+    geradores de contact sheet, para reaproveitar folhas que já existam na pasta."""
     return f"{video.name}.jpg"
 
 
