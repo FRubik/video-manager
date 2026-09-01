@@ -245,11 +245,16 @@ class MainWindow(QMainWindow):
 
     def _on_generation_finished(self, results: list) -> None:
         self._gen_timer.stop()
-        if self._progress is not None:
-            self._progress.close()
-            self._progress = None
+        # ler o estado do worker ANTES de mexer no diálogo: fechar um
+        # QProgressDialog emite `canceled`, e deixar isso chegar ao
+        # `_cancel_generation` marcaria como cancelada uma geração que terminou
+        # sozinha — era o que fazia a mensagem final falar em cancelamento.
         cancelled = self._worker is not None and self._worker.cancelled
         self._worker = None
+        if self._progress is not None:
+            self._progress.canceled.disconnect(self._cancel_generation)
+            self._progress.close()
+            self._progress = None
 
         # o que foi abortado a pedido do usuário não é falha do vídeo
         failures = [r for r in results if not r.ok and not r.cancelled]
