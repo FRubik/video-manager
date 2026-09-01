@@ -172,6 +172,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "setup.gen.details": {"pt": "Detalhes:", "en": "Details:"},
     "setup.gen.cell_height": {"pt": "altura da célula", "en": "cell height"},
     "setup.gen.margin": {"pt": "margem", "en": "margin"},
+    "setup.gen.spacing": {"pt": "espaço", "en": "spacing"},
     "setup.gen.workers": {"pt": "threads", "en": "threads"},
     "setup.gen.timestamp": {
         "pt": "Escrever o tempo em cada frame",

@@ -29,6 +29,8 @@ class Config:
     n_cols: int = 5
     cell_height: int = 200
     margin: float = 0.05
+    #: espaço em px entre os frames da grade
+    spacing: int = 4
     workers: int = 6
     add_timestamp: bool = True
     #: faixa de informações no topo da folha

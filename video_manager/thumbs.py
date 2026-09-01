@@ -26,6 +26,8 @@ class ThumbOptions:
     n_cols: int = 5
     cell_height: int = 200
     margin: float = 0.05  # ignora os primeiros/últimos X% do vídeo
+    #: espaço em px entre as células e ao redor da grade
+    spacing: int = 4
     add_timestamp: bool = True
     workers: int = 6
     #: faixa superior com os dados do arquivo
@@ -158,6 +160,10 @@ def _ffmpeg_one_frame(video_path: Path, t: float) -> np.ndarray | None:
 # ------------------------------------------------------------------ cabeçalho
 
 HEADER_BG = (46, 46, 46)
+#: fundo da grade — aparece no espaço entre as células e nas sobras. É o mesmo
+#: cinza da faixa: a folha inteira fica com uma moldura só, em vez de a grade
+#: parecer colada sobre um fundo de outra cor
+GRID_BG = HEADER_BG
 HEADER_FG = (255, 255, 255)
 HEADER_DIM = (170, 170, 170)
 WATERMARK_FG = (124, 124, 124)
@@ -341,9 +347,18 @@ def _compose(
     while len(cells) < opts.n_rows * opts.n_cols:
         cells.append(Image.new("RGB", (cell_w, cell_h), (0, 0, 0)))
 
-    grid = Image.new("RGB", (cell_w * opts.n_cols, cell_h * opts.n_rows), (0, 0, 0))
+    # o espaço vale entre as células e também na borda, senão a primeira coluna
+    # encosta no corte da folha e a grade fica torta
+    gap = max(0, int(opts.spacing))
+    grid = Image.new(
+        "RGB",
+        (cell_w * opts.n_cols + gap * (opts.n_cols + 1),
+         cell_h * opts.n_rows + gap * (opts.n_rows + 1)),
+        GRID_BG,
+    )
     for idx, cell in enumerate(cells):
-        grid.paste(cell, ((idx % opts.n_cols) * cell_w, (idx // opts.n_cols) * cell_h))
+        col, row = idx % opts.n_cols, idx // opts.n_cols
+        grid.paste(cell, (gap + col * (cell_w + gap), gap + row * (cell_h + gap)))
 
     if not opts.header or info is None:
         return grid
