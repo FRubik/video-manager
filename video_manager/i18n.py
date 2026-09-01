@@ -435,6 +435,29 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "{ok} thumbnail(s) generated, {failed} with errors:\n\n{detail}",
     },
     "app.gen.failed.more": {"pt": "\n… e mais {n}", "en": "\n… and {n} more"},
+    "app.gen.failed.move": {
+        "pt": "Mover os que falharam para uma pasta…",
+        "en": "Move the failed ones to a folder…",
+    },
+    "app.gen.failed.move.title": {
+        "pt": "Mover os vídeos que falharam",
+        "en": "Move the failed videos",
+    },
+    "app.gen.failed.move.body": {
+        "pt": "Mover {count} vídeo(s) para:\n{folder}\n\n"
+              "A pasta é criada se não existir. Nenhuma thumbnail é tocada.",
+        "en": "Move {count} video(s) to:\n{folder}\n\n"
+              "The folder is created if it does not exist. No thumbnail is touched.",
+    },
+    "app.gen.failed.moved.title": {"pt": "Vídeos movidos", "en": "Videos moved"},
+    "app.gen.failed.moved.body": {
+        "pt": "{moved} vídeo(s) movido(s) para:\n{folder}",
+        "en": "{moved} video(s) moved to:\n{folder}",
+    },
+    "app.gen.failed.moved.errors": {
+        "pt": "\n\nNão foi possível mover:\n{detail}",
+        "en": "\n\nCould not move:\n{detail}",
+    },
 
     # ----------------------------------------------------- avisos: revisão
     "app.nothing.title": {"pt": "Nada para revisar", "en": "Nothing to review"},
