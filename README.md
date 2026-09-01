@@ -20,6 +20,9 @@ reused instead of being made again.
 - Python 3.12
 - [uv](https://docs.astral.sh/uv/)
 - A desktop session (Linux, macOS or Windows)
+- `ffmpeg` on the PATH — **optional**, used only as a second path when OpenCV
+  cannot decode a video (AV1, typically). Without it, those videos fail with an
+  error instead of producing the sheet.
 
 ## Install
 
@@ -357,7 +360,12 @@ the number of cells, with no meaningful per-video overhead to amortise, so
 **dropping from 5×5 to 3×3 cuts about 70% of the generation time** — with any
 engine.
 
-## Contributing
+ffmpeg does keep one job, though: **AV1**. The `opencv-python` wheels ship an
+ffmpeg with no `dav1d`, only the hardware AV1 decoder, so `cap.read()` fails on
+every frame of an AV1 file. When that happens and the system `ffmpeg` is on the
+PATH, a second path re-extracts the frames with it — one process per frame, with
+an accurate seek (it's the rare case; precision beats the milliseconds saved).
+Without ffmpeg, the video fails with an error rather than saving a black sheet.
 
 Issues and pull requests are welcome. Two things worth knowing before touching
 the code:

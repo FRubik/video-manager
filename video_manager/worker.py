@@ -22,9 +22,12 @@ class ThumbWorker(QThread):
         self._opts = opts
         self._cancelled = False
         self._frames_done = 0
-        self._frames_lock = threading.Lock()
-        #: total de frames do lote — a unidade fina da barra de progresso
-        self.frames_total = max(1, len(videos) * opts.n_rows * opts.n_cols)
+        #: total de frames do lote — a unidade fina da barra de progresso. Cresce
+        #: quando um vídeo cai no ffmpeg (segunda passada, mais frames a fazer).
+        self._frames_total = max(1, len(videos) * opts.n_rows * opts.n_cols)
+        #: quantos vídeos precisaram do ffmpeg (AV1) — citado no diálogo
+        self._ffmpeg_fallbacks = 0
+        self._counters_lock = threading.Lock()
 
     def cancel(self) -> None:
         self._cancelled = True
@@ -43,9 +46,22 @@ class ThumbWorker(QThread):
         """
         return self._frames_done
 
+    @property
+    def frames_total(self) -> int:
+        return self._frames_total
+
+    @property
+    def ffmpeg_fallbacks(self) -> int:
+        return self._ffmpeg_fallbacks
+
     def _count_frame(self) -> None:
-        with self._frames_lock:
+        with self._counters_lock:
             self._frames_done += 1
+
+    def _note_ffmpeg_fallback(self, extra_frames: int) -> None:
+        with self._counters_lock:
+            self._frames_total += extra_frames
+            self._ffmpeg_fallbacks += 1
 
     def run(self) -> None:
         def on_progress(done: int, total: int, result: ThumbResult) -> None:
@@ -58,5 +74,6 @@ class ThumbWorker(QThread):
             progress=on_progress,
             should_cancel=lambda: self._cancelled,
             on_step=self._count_frame,
+            on_ffmpeg_fallback=self._note_ffmpeg_fallback,
         )
         self.finished_with_results.emit(results)

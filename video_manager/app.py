@@ -227,16 +227,20 @@ class MainWindow(QMainWindow):
         if dialog is None or worker is None:
             return
         done, total = self._generated
+        # o total cresce quando um vídeo cai no ffmpeg (AV1): a segunda passada
+        # traz mais frames a fazer, e a barra precisa acompanhar
+        dialog.setMaximum(worker.frames_total)
         if not worker.cancelled:
-            dialog.setLabelText(
-                tr(
-                    "app.gen.progress.detail",
-                    done=done,
-                    total=total,
-                    frames=worker.frames_done,
-                    frames_total=worker.frames_total,
-                )
+            texto = tr(
+                "app.gen.progress.detail",
+                done=done,
+                total=total,
+                frames=worker.frames_done,
+                frames_total=worker.frames_total,
             )
+            if worker.ffmpeg_fallbacks:
+                texto += "\n" + tr("app.gen.progress.ffmpeg", n=worker.ffmpeg_fallbacks)
+            dialog.setLabelText(texto)
         dialog.setValue(min(worker.frames_done, worker.frames_total))
 
     def _on_generation_finished(self, results: list) -> None:

@@ -416,6 +416,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt": "Vídeos: {done}/{total} · frames: {frames}/{frames_total}",
         "en": "Videos: {done}/{total} · frames: {frames}/{frames_total}",
     },
+    "app.gen.progress.ffmpeg": {
+        "pt": "{n} vídeo(s) via ffmpeg (AV1) — mais lento",
+        "en": "{n} video(s) via ffmpeg (AV1) — slower",
+    },
     "app.gen.cancelling": {
         "pt": "Cancelando… o vídeo em curso para no próximo frame.",
         "en": "Cancelling… the video in progress stops at the next frame.",
