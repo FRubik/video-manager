@@ -4,8 +4,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor, QKeySequence, QPixmap, QShortcut
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QImage,
+    QKeySequence,
+    QPixmap,
+    QShortcut,
+)
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -19,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from . import library, shortcuts
+from . import library, shortcuts, thumbs
 from .i18n import tr
 from .library import DELETE, KEEP, MAYBE, ReviewState, VideoEntry
 
@@ -27,6 +35,41 @@ COLOR_KEEP = "#2e7d32"
 COLOR_DELETE = "#c62828"
 COLOR_MAYBE = "#ef6c00"
 COLOR_PENDING = "#757575"
+
+
+def _rows(image: QImage) -> np.ndarray:
+    """As linhas de `image` como um array (altura, largura, 3) de RGB.
+
+    A cópia no fim não é preciosismo: o array de `frombuffer` aponta para os
+    bytes do QImage convertido, que morre com esta função — sem ela o que volta
+    é memória liberada, e a leitura seguinte derruba o processo.
+    """
+    rgb = image.convertToFormat(QImage.Format_RGB888)
+    flat = np.frombuffer(rgb.constBits(), dtype=np.uint8, count=rgb.sizeInBytes())
+    # cada linha do QImage é alinhada a 4 bytes: a sobra do fim entra na conta
+    # do reshape e sai antes de virar pixel
+    return flat.reshape(rgb.height(), rgb.bytesPerLine())[
+        :, : rgb.width() * 3
+    ].reshape(rgb.height(), rgb.width(), 3).copy()
+
+
+def _grid_only(image: QImage) -> QImage:
+    """A folha sem a faixa de metadados do topo.
+
+    Na revisão quem decide é a cena. Os dados do arquivo estão na faixa para
+    quando a folha é aberta fora do programa, num visualizador qualquer — aqui
+    eles só roubam altura das imagens, que é o que se está olhando.
+
+    Folha sem faixa (as antigas, as de outros geradores) passa intacta.
+    """
+    limit = int(image.height() * thumbs.HEADER_MAX_RATIO)
+    if limit < 2:
+        return image
+    top = image.copy(0, 0, image.width(), limit)
+    rows = thumbs.header_height(_rows(top))
+    if rows <= 0:
+        return image
+    return image.copy(0, rows, image.width(), image.height() - rows)
 
 
 class ImageViewer(QScrollArea):
@@ -49,8 +92,8 @@ class ImageViewer(QScrollArea):
             self._label.setText(tr("review.no_thumb"))
             self._label.setStyleSheet("background: #111; color: #bbb;")
         else:
-            pixmap = QPixmap(str(path))
-            self._pixmap = None if pixmap.isNull() else pixmap
+            image = QImage(str(path))
+            self._pixmap = None if image.isNull() else QPixmap.fromImage(_grid_only(image))
             if self._pixmap is None:
                 self._label.setText(tr("review.bad_image"))
         self._fit = True

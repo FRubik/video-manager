@@ -181,6 +181,47 @@ LOGO_PATH = Path(__file__).parent / "icons" / "hicolor" / "256x256" / "apps" / "
 #: da faixa em vez de fazer par com o texto da marca
 LOGO_PEAK = 168
 
+#: tolerância por canal para dar um pixel como sendo o fundo da faixa: a folha
+#: é gravada em JPEG e os 46 escritos não voltam 46 na leitura
+HEADER_TOL = 8
+#: fração da largura que precisa ser fundo para a linha ainda ser cabeçalho. O
+#: texto ocupa pouco de cada linha; um frame de vídeo cobre a largura inteira
+HEADER_MIN_BG = 0.5
+#: até onde procurar o fim da faixa, em fração da altura da folha. Numa 5x5 ela
+#: fica em 13%; o teto é o que impede uma cena escura de ser tomada por faixa
+HEADER_MAX_RATIO = 0.3
+#: quantas colunas bastam para decidir se a linha é fundo. Olhar as ~1800 de
+#: uma folha 5x5 custa 13 ms a cada troca de vídeo na revisão, e a resposta é a
+#: mesma: a conta é uma proporção, e uma amostra regular a mede igual
+HEADER_SAMPLE_COLS = 256
+
+
+def header_height(top: np.ndarray) -> int:
+    """Quantas linhas do topo da folha são cabeçalho — 0 quando não há nenhum.
+
+    A folha não guarda onde a faixa acaba, e nem sempre foi este programa que a
+    gerou: o que dá para afirmar é que a faixa é do cinza de `HEADER_BG` de
+    ponta a ponta, com o texto ocupando pouco de cada linha. A primeira linha
+    que deixa de ser quase toda fundo é onde a grade começa.
+
+    `top` é só o começo da folha — recortado em `HEADER_MAX_RATIO` pelo
+    chamador. Limitar a busca é o que garante que, na falta de faixa, a conta
+    pare cedo em vez de varrer a folha inteira atrás de uma.
+
+    Sobram uns poucos pixels de cinza acima do corte: o JPEG borra a fronteira
+    entre o último gap e a primeira cena, e a linha da emenda ainda passa pelo
+    critério. É a mesma borda que a grade já tem dos outros lados.
+    """
+    if top.size == 0:
+        return 0
+    step = max(1, top.shape[1] // HEADER_SAMPLE_COLS)
+    sample = top[:, ::step].astype(np.int16)
+    is_bg = (np.abs(sample - np.array(HEADER_BG, dtype=np.int16)) <= HEADER_TOL).all(axis=2)
+    limit = is_bg.shape[1] * HEADER_MIN_BG
+    content = np.flatnonzero(np.count_nonzero(is_bg, axis=1) < limit)
+    return int(content[0]) if content.size else 0
+
+
 #: primeira que existir no sistema; a ordem cobre Linux, Windows e macOS
 _FONT_FILES: dict[bool, tuple[str, ...]] = {
     False: (
