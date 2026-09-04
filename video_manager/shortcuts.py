@@ -35,6 +35,7 @@ ACTIONS: tuple[Action, ...] = (
     Action("maybe", "W"),
     Action("delete", "Q", ("Del",)),
     Action("open", "G"),
+    Action("rename", "R"),
     Action("zoom", "Z"),
 )
 

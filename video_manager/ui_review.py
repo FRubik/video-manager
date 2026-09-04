@@ -16,6 +16,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -199,7 +200,7 @@ class ReviewView(QWidget):
         root.addWidget(self.volume_label)
 
         buttons = QHBoxLayout()
-        # os seis primeiros têm o texto escrito em `apply_key_bindings`, que
+        # os sete primeiros têm o texto escrito em `apply_key_bindings`, que
         # precisa carimbar a tecla atual de cada ação
         self.prev_button = QPushButton()
         self.next_button = QPushButton()
@@ -207,6 +208,7 @@ class ReviewView(QWidget):
         self.maybe_button = QPushButton()
         self.delete_button = QPushButton()
         self.open_button = QPushButton()
+        self.rename_button = QPushButton()
         self.back_button = QPushButton()
         self.finish_button = QPushButton()
 
@@ -220,6 +222,7 @@ class ReviewView(QWidget):
         self.maybe_button.clicked.connect(lambda: self.decide(MAYBE))
         self.delete_button.clicked.connect(lambda: self.decide(DELETE))
         self.open_button.clicked.connect(self.open_current_video)
+        self.rename_button.clicked.connect(self.rename_current)
         self.back_button.clicked.connect(self.go_back)
         self.finish_button.clicked.connect(self.finish)
 
@@ -231,6 +234,7 @@ class ReviewView(QWidget):
         buttons.addWidget(self.delete_button)
         buttons.addSpacing(20)
         buttons.addWidget(self.open_button)
+        buttons.addWidget(self.rename_button)
         buttons.addStretch()
         buttons.addWidget(self.back_button)
         buttons.addWidget(self.finish_button)
@@ -265,6 +269,7 @@ class ReviewView(QWidget):
             "maybe": lambda: self.decide(MAYBE),
             "delete": lambda: self.decide(DELETE),
             "open": self.open_current_video,
+            "rename": self.rename_current,
             "zoom": self.viewer.toggle_zoom,
         }
 
@@ -294,6 +299,7 @@ class ReviewView(QWidget):
             (self.maybe_button, "maybe"),
             (self.delete_button, "delete"),
             (self.open_button, "open"),
+            (self.rename_button, "rename"),
         ):
             button.setText(tr(f"review.{action}", key=mapping[action]))
         self.back_button.setText(tr("review.back"))
@@ -513,6 +519,84 @@ class ReviewView(QWidget):
                     path=entry.video,
                 ),
             )
+
+    def rename_current(self) -> None:
+        """Renomeia o vídeo corrente e a thumb dele, de uma vez.
+
+        Existe para o nome que só se revela olhando a folha: trocá-lo à mão
+        significaria achar o arquivo em duas pastas e acertar as duas
+        convenções de nome — e um erro ali desfaz o pareamento.
+        """
+        entry = self.current
+        if entry is None:
+            return
+        if not entry.video.exists():
+            self._rename_failed(entry.name, tr("error.file_gone"))
+            return
+
+        digitado, ok = QInputDialog.getText(
+            self,
+            tr("review.rename.title"),
+            tr("review.rename.label", ext=entry.video.suffix),
+            text=entry.video.stem,
+        )
+        if not ok:
+            return
+        stem = library.clean_stem(digitado)
+        if not stem:
+            QMessageBox.warning(
+                self,
+                tr("review.rename.invalid.title"),
+                tr("review.rename.invalid.body", chars=library.INVALID_NAME_CHARS),
+            )
+            return
+        if stem == entry.video.stem:
+            return
+
+        novo_video, nova_thumb = library.free_pair(
+            entry.video, entry.thumb, stem, library.index_thumbs(self.thumbs_dir)
+        )
+        if novo_video.stem != stem:
+            # o nome pedido já está ocupado. A numeração resolve, mas sobrescrever
+            # nunca é opção: quem decide se aceita o nome numerado é quem digitou
+            answer = QMessageBox.question(
+                self,
+                tr("review.rename.taken.title"),
+                tr(
+                    "review.rename.taken.body",
+                    name=stem + entry.video.suffix,
+                    suggested=novo_video.name,
+                ),
+                QMessageBox.Yes | QMessageBox.Cancel,
+                QMessageBox.Yes,
+            )
+            if answer != QMessageBox.Yes:
+                return
+
+        anterior = entry.name
+        try:
+            library.rename_pair(entry.video, entry.thumb, novo_video, nova_thumb)
+        except OSError as exc:
+            self._rename_failed(entry.name, str(exc))
+            return
+
+        entry.video, entry.thumb = novo_video, nova_thumb
+        if self.state is not None:
+            # o histórico é indexado pelo nome: sem isto, um vídeo já revisado
+            # voltaria como pendente. E o disco já mudou — gravar não espera o fim
+            self.state.rename(anterior, entry.name)
+            self.state.save()
+        self.autosave()
+        self.show_current()
+        self._update_list_item(self.index)
+        self.grab_keyboard_focus()
+
+    def _rename_failed(self, name: str, reason: str) -> None:
+        QMessageBox.warning(
+            self,
+            tr("review.rename.failed.title"),
+            tr("review.rename.failed.body", name=name, reason=reason),
+        )
 
     def _offer_finish(self) -> None:
         stats = self._stats()

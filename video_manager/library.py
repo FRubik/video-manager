@@ -168,6 +168,16 @@ class ReviewState:
             "size": size_bytes,
         }
 
+    def rename(self, old: str, new: str) -> None:
+        """Leva o registro junto quando o arquivo muda de nome.
+
+        A chave do histórico é o nome do vídeo: sem isto, um vídeo já revisado
+        voltaria a aparecer como pendente na sessão seguinte.
+        """
+        record = self.reviewed.pop(old, None)
+        if record is not None:
+            self.reviewed[new] = record
+
     def save(self) -> None:
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -527,6 +537,88 @@ def unique_destination(dest: Path) -> Path:
         if not candidate.exists():
             return candidate
         n += 1
+
+
+#: caracteres que um nome de arquivo não pode ter em pelo menos um dos sistemas
+#: suportados — a barra no Linux, o resto no Windows
+INVALID_NAME_CHARS = '/\\:*?"<>|'
+
+
+def clean_stem(raw: str) -> str:
+    """O nome digitado pronto para virar arquivo, ou "" se não sobrar nada.
+
+    Tira os caracteres proibidos em vez de recusar o nome inteiro: quem renomeia
+    no meio da triagem quer o nome, não uma aula de sintaxe.
+    """
+    limpo = "".join(c for c in raw if c not in INVALID_NAME_CHARS and c >= " ")
+    return limpo.strip().strip(".").strip()
+
+
+def paired_thumb_name(thumb: Path, video: Path, novo_video: Path) -> str:
+    """O nome que a thumb passa a ter quando o vídeo vira `novo_video`.
+
+    A convenção é lida do par atual e mantida: `video.mp4.jpg` (a que o programa
+    gera) ou `video.jpg`, as duas que `index_thumbs` aceita. Trocar de convenção
+    no meio desfaria o par na varredura seguinte.
+    """
+    com_extensao = thumb.stem.lower() == video.name.lower()
+    return f"{novo_video.name if com_extensao else novo_video.stem}{thumb.suffix}"
+
+
+def free_pair(
+    video: Path,
+    thumb: Path | None,
+    stem: str,
+    thumb_index: dict[str, Path] | None = None,
+) -> tuple[Path, Path | None]:
+    """Caminhos livres para o vídeo e a thumb sob o nome `stem`.
+
+    Os dois precisam estar livres ao mesmo tempo: renomear um só quebraria o
+    pareamento, e sobrescrever qualquer um deles perderia um arquivo. Ocupado,
+    numera — `<nome> (2).ext`, o mesmo formato de `unique_destination`.
+
+    `thumb_index` (de `index_thumbs`) evita adotar a folha órfã de um vídeo
+    apagado: um vídeo sem thumb renomeado para um nome que ainda tem folha na
+    pasta apareceria pareado com a cena errada na próxima varredura.
+    """
+    index = thumb_index or {}
+    numero = 1
+    while True:
+        candidato = stem if numero == 1 else f"{stem} ({numero})"
+        novo_video = video.with_name(candidato + video.suffix)
+        nova_thumb = (
+            None if thumb is None
+            else thumb.with_name(paired_thumb_name(thumb, video, novo_video))
+        )
+        ocupada = find_thumb(novo_video, index)
+        livre = (
+            (novo_video == video or not novo_video.exists())
+            and (ocupada is None or ocupada == thumb)
+            and (nova_thumb is None or nova_thumb == thumb or not nova_thumb.exists())
+        )
+        if livre:
+            return novo_video, nova_thumb
+        numero += 1
+
+
+def rename_pair(
+    video: Path, thumb: Path | None, novo_video: Path, nova_thumb: Path | None
+) -> None:
+    """Renomeia o vídeo e a thumb para os caminhos calculados por `free_pair`.
+
+    A thumb vai primeiro: se o vídeo falhar, ela volta ao nome anterior e o par
+    continua batendo. Na ordem inversa, uma falha deixaria o vídeo sem folha.
+    """
+    thumb_movida = thumb is not None and nova_thumb is not None and nova_thumb != thumb
+    if thumb_movida:
+        thumb.rename(nova_thumb)
+    try:
+        if novo_video != video:
+            video.rename(novo_video)
+    except OSError:
+        if thumb_movida:
+            nova_thumb.rename(thumb)
+        raise
 
 
 def move_video(video: Path, dest_dir: Path, motivo: str, log_dir: Path | None = None) -> Path:
