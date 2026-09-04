@@ -213,6 +213,7 @@ The default keys sit on the left of the keyboard, so you can review one-handed:
 | `W` | marks it as *maybe* — review later — and moves on |
 | `Q` or `Del` | marks it to delete and moves on |
 | `G` | opens the video in the system's default player |
+| `R` | renames the video and its thumbnail, keeping the pair |
 | `Z` or click | toggles between fit-to-window and 1:1 zoom |
 | `Enter` | applies the decisions and ends the session |
 
@@ -223,6 +224,13 @@ the choice is saved in `config.json`. The alternatives in the table (`←`, `→
 Nothing is moved while you decide — the marks are only applied on **Apply and
 finish** (or at the end of the session, which asks), always with a confirmation.
 Next to it, **Back** returns you to the start screen without moving anything.
+
+Renaming (`R`) is the exception — the only review action that touches the disk
+right away. It opens a box with the current name and, once confirmed, renames the
+video and the thumbnail together, each in the convention it already uses, so the
+pair still matches on the next scan and the history follows the new name. If the
+name you asked for is taken, the program offers `name (2).ext` and waits for your
+ok: nothing is ever overwritten.
 
 ### 3. The "maybe"
 

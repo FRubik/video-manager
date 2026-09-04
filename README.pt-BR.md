@@ -211,6 +211,7 @@ As teclas padrão ficam agrupadas à esquerda, para revisar com uma mão só:
 | `W` | marca como *talvez* — rever depois — e avança |
 | `Q` ou `Del` | marca para apagar e avança |
 | `G` | abre o vídeo no player padrão do sistema |
+| `R` | renomeia o vídeo e a thumbnail dele, sem desfazer o par |
 | `Z` ou clique | alterna entre ajustar à janela e zoom 1:1 |
 | `Enter` | aplica as decisões e encerra a sessão |
 
@@ -221,6 +222,13 @@ fica salva no `config.json`. As alternativas da tabela (`←`, `→`, `Espaço`,
 Nada é movido enquanto você decide — as marcações só são aplicadas em **Aplicar e
 finalizar** (ou no fim da sessão, que pergunta), sempre com confirmação. Ao lado
 dele, **Voltar** devolve você à tela inicial sem mover nada.
+
+A exceção é a renomeação (`R`), a única ação da revisão que mexe no disco na
+hora: ela abre uma caixa com o nome atual e, ao confirmar, renomeia o vídeo e a
+thumbnail juntos, cada um na convenção que já usa — o par continua batendo na
+próxima varredura, e o histórico acompanha o nome novo. Se o nome pedido já
+estiver ocupado, o programa propõe `nome (2).ext` e espera o seu ok: nada é
+sobrescrito.
 
 ### 3. O "talvez"
 

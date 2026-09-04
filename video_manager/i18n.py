@@ -675,6 +675,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "review.maybe": {"pt": "Talvez ({key})", "en": "Maybe ({key})"},
     "review.delete": {"pt": "Apagar ({key})", "en": "Delete ({key})"},
     "review.open": {"pt": "Abrir vídeo ({key})", "en": "Open video ({key})"},
+    "review.rename": {"pt": "Renomear ({key})", "en": "Rename ({key})"},
     "review.back": {"pt": "◀ Voltar", "en": "◀ Back"},
     "review.back.tip": {
         "pt": "Volta para a tela inicial sem mover nada.\n"
@@ -712,6 +713,35 @@ STRINGS: dict[str, dict[str, str]] = {
     "review.open.failed.body": {
         "pt": "{name}\n\n{reason}\n\nCaminho:\n{path}",
         "en": "{name}\n\n{reason}\n\nPath:\n{path}",
+    },
+    "review.rename.title": {"pt": "Renomear vídeo", "en": "Rename video"},
+    "review.rename.label": {
+        "pt": "Novo nome, sem a extensão {ext}.\nA thumbnail é renomeada junto.",
+        "en": "New name, without the {ext} extension.\nThe thumbnail is renamed along with it.",
+    },
+    "review.rename.invalid.title": {"pt": "Nome inválido", "en": "Invalid name"},
+    "review.rename.invalid.body": {
+        "pt": "Sem os caracteres que um arquivo não pode ter ({chars}), "
+              "não sobrou nome nenhum.",
+        "en": "Without the characters a file name cannot have ({chars}), "
+              "nothing was left of the name.",
+    },
+    "review.rename.taken.title": {"pt": "Nome já em uso", "en": "Name already in use"},
+    "review.rename.taken.body": {
+        "pt": "Já existe “{name}” — renomear sobrescreveria esse arquivo.\n\n"
+              "Usar “{suggested}”?",
+        "en": "“{name}” already exists — renaming would overwrite that file.\n\n"
+              "Use “{suggested}” instead?",
+    },
+    "review.rename.failed.title": {
+        "pt": "Não foi possível renomear",
+        "en": "The video could not be renamed",
+    },
+    "review.rename.failed.body": {
+        "pt": "{name}\n\n{reason}\n\nNada foi alterado: o vídeo e a thumbnail "
+              "continuam com o nome de antes.",
+        "en": "{name}\n\n{reason}\n\nNothing changed: the video and the thumbnail "
+              "keep their previous name.",
     },
     "review.end.title": {"pt": "Fim da sessão", "en": "End of the session"},
     "review.end.body": {
@@ -789,6 +819,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "action.maybe": {"pt": "Talvez", "en": "Maybe"},
     "action.delete": {"pt": "Excluir", "en": "Delete"},
     "action.open": {"pt": "Abrir no player", "en": "Open in the player"},
+    "action.rename": {"pt": "Renomear", "en": "Rename"},
     "action.zoom": {"pt": "Zoom 1:1", "en": "1:1 zoom"},
 
     # ------------------------------------------------------------- erros
