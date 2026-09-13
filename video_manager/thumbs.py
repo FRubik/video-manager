@@ -174,7 +174,7 @@ WATERMARK_SUB = "github.com/FRubik/video-manager"
 
 #: mesmo ícone de `icons.py`, lido daqui pelo caminho para não arrastar o Qt
 #: para dentro do motor de geração
-LOGO_PATH = Path(__file__).parent / "icons" / "hicolor" / "256x256" / "apps" / "video-manager.png"
+LOGO_PATH = Path(__file__).parent / "icons" / "hicolor" / "256x256" / "apps" / "io.github.frubik.VideoManager.png"
 
 #: cinza do ponto mais claro do logo depois de recolorido, contra os 46 do
 #: fundo — o ícone colorido, com o fundo escuro dele, virava um bloco no meio

@@ -1,13 +1,12 @@
 [Desktop Entry]
 Type=Application
 Name=Video Manager
-Name[pt_BR]=Gerenciador de Vídeos
 GenericName=Video triage
 GenericName[pt_BR]=Triagem de vídeos
 Comment=Build contact sheets for a video folder and triage what to keep or discard
 Comment[pt_BR]=Gera contact sheets de uma pasta de vídeos e tria o que manter ou descartar
 Exec=video-manager
-Icon=video-manager
+Icon=io.github.frubik.VideoManager
 Terminal=false
 Categories=AudioVideo;Video;
 Keywords=video;thumbnail;contact sheet;triage;
