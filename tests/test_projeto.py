@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
 import tomllib
 from pathlib import Path
+
+import pytest
 
 import video_manager
 
@@ -34,3 +38,20 @@ def test_links_locais_dos_readmes_existem():
             if not (RAIZ / alvo.split("#")[0]).exists():
                 quebrados.append(f"{readme}: {alvo}")
     assert quebrados == []
+
+
+def _ruff() -> list[str] | None:
+    if shutil.which("ruff"):
+        return ["ruff"]
+    if shutil.which("uvx"):
+        return ["uvx", "ruff"]
+    return None
+
+
+@pytest.mark.skipif(_ruff() is None, reason="nem ruff nem uvx no PATH")
+@pytest.mark.parametrize("argumentos", [["check", "."], ["format", "--check", "."]])
+def test_ruff(argumentos):
+    feito = subprocess.run(
+        [*_ruff(), *argumentos], cwd=RAIZ, capture_output=True, text=True, timeout=300
+    )
+    assert feito.returncode == 0, feito.stdout + feito.stderr

@@ -350,14 +350,34 @@ class SetupView(QWidget):
         trash_name = library.default_trash_dir_name()
         maybe_name = library.default_maybe_dir_name()
         for picker, label, label_key, hint_key, hint_name in (
-            (self.videos_picker, self.videos_label,
-             "setup.folders.videos", "setup.folders.videos.hint", None),
-            (self.thumbs_picker, self.thumbs_label,
-             "setup.folders.thumbs", "setup.folders.thumbs.hint", thumbs_name),
-            (self.trash_picker, self.trash_label,
-             "setup.folders.trash", "setup.folders.trash.hint", trash_name),
-            (self.maybe_picker, self.maybe_folder_label,
-             "setup.folders.maybe", "setup.folders.maybe.hint", maybe_name),
+            (
+                self.videos_picker,
+                self.videos_label,
+                "setup.folders.videos",
+                "setup.folders.videos.hint",
+                None,
+            ),
+            (
+                self.thumbs_picker,
+                self.thumbs_label,
+                "setup.folders.thumbs",
+                "setup.folders.thumbs.hint",
+                thumbs_name,
+            ),
+            (
+                self.trash_picker,
+                self.trash_label,
+                "setup.folders.trash",
+                "setup.folders.trash.hint",
+                trash_name,
+            ),
+            (
+                self.maybe_picker,
+                self.maybe_folder_label,
+                "setup.folders.maybe",
+                "setup.folders.maybe.hint",
+                maybe_name,
+            ),
         ):
             label.setText(tr(label_key))
             picker.set_placeholder(
@@ -369,13 +389,9 @@ class SetupView(QWidget):
             tr("setup.folders.thumbs.default.tip", name=thumbs_name)
         )
         self.trash_default_button.setText(tr("common.default"))
-        self.trash_default_button.setToolTip(
-            tr("setup.folders.trash.default.tip", name=trash_name)
-        )
+        self.trash_default_button.setToolTip(tr("setup.folders.trash.default.tip", name=trash_name))
         self.maybe_default_button.setText(tr("common.default"))
-        self.maybe_default_button.setToolTip(
-            tr("setup.folders.maybe.default.tip", name=maybe_name)
-        )
+        self.maybe_default_button.setToolTip(tr("setup.folders.maybe.default.tip", name=maybe_name))
 
         # --- geração ---
         self.gen_group.setTitle(tr("setup.gen"))
@@ -395,8 +411,7 @@ class SetupView(QWidget):
         # a explicação de cada parâmetro vai no rótulo e no campo: quem passa o
         # mouse pode estar mirando qualquer um dos dois
         for chave, widgets in (
-            ("grid", (self.grid_label, self.rows_label, self.cols_label,
-                      self.n_rows, self.n_cols)),
+            ("grid", (self.grid_label, self.rows_label, self.cols_label, self.n_rows, self.n_cols)),
             ("cell_height", (self.cell_height_label, self.cell_height)),
             ("margin", (self.margin_label, self.margin)),
             ("spacing", (self.spacing_label, self.spacing)),
@@ -672,9 +687,7 @@ class SetupView(QWidget):
         size = library.format_size
         self.empty_trash_button.setEnabled(bool(stats.trash_count))
 
-        primeira = tr(
-            "setup.volume.total", size=size(stats.total_bytes), count=stats.total_count
-        )
+        primeira = tr("setup.volume.total", size=size(stats.total_bytes), count=stats.total_count)
         if stats.maybe_count:
             primeira += tr("setup.volume.maybe", size=size(stats.maybe_bytes))
         if stats.trash_count:

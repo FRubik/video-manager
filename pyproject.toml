@@ -42,3 +42,10 @@ packages = ["video_manager"]
 dev = [
     "pytest>=9.2.0",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM"]

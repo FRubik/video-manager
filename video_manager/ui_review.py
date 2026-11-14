@@ -49,9 +49,11 @@ def _rows(image: QImage) -> np.ndarray:
     flat = np.frombuffer(rgb.constBits(), dtype=np.uint8, count=rgb.sizeInBytes())
     # cada linha do QImage é alinhada a 4 bytes: a sobra do fim entra na conta
     # do reshape e sai antes de virar pixel
-    return flat.reshape(rgb.height(), rgb.bytesPerLine())[
-        :, : rgb.width() * 3
-    ].reshape(rgb.height(), rgb.width(), 3).copy()
+    return (
+        flat.reshape(rgb.height(), rgb.bytesPerLine())[:, : rgb.width() * 3]
+        .reshape(rgb.height(), rgb.width(), 3)
+        .copy()
+    )
 
 
 def _grid_only(image: QImage) -> QImage:
@@ -357,6 +359,7 @@ class ReviewView(QWidget):
         O adiamento é necessário porque o diálogo de progresso (ou qualquer
         modal) só devolve o foco depois que o event loop processa o fechamento.
         """
+
         def take():
             if self.isVisible():
                 self.window().activateWindow()
@@ -447,8 +450,11 @@ class ReviewView(QWidget):
 
     def _update_status_label(self, entry: VideoEntry) -> None:
         texto = tr(
-            {DELETE: "review.status.delete", KEEP: "review.status.keep",
-             MAYBE: "review.status.maybe"}.get(entry.decision, "review.status.pending")
+            {
+                DELETE: "review.status.delete",
+                KEEP: "review.status.keep",
+                MAYBE: "review.status.maybe",
+            }.get(entry.decision, "review.status.pending")
         )
         cor = {DELETE: COLOR_DELETE, KEEP: COLOR_KEEP, MAYBE: COLOR_MAYBE}.get(
             entry.decision, COLOR_PENDING
@@ -752,11 +758,13 @@ class ReviewView(QWidget):
                 text=tr(chave),
             )
 
-        message = "<br>".join((
-            linha(contagem[DELETE], volume[DELETE], "review.done.deleted"),
-            linha(contagem[MAYBE], volume[MAYBE], "review.done.maybe"),
-            linha(contagem[KEEP], volume[KEEP], "review.done.kept"),
-        ))
+        message = "<br>".join(
+            (
+                linha(contagem[DELETE], volume[DELETE], "review.done.deleted"),
+                linha(contagem[MAYBE], volume[MAYBE], "review.done.maybe"),
+                linha(contagem[KEEP], volume[KEEP], "review.done.kept"),
+            )
+        )
         restante = self._stats().estimated_remaining
         if restante is not None:
             message += tr("review.done.projection", size=library.format_size(restante))

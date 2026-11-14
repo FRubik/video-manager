@@ -57,7 +57,7 @@ class Config:
         return self.include_maybe or self.only_maybe
 
     @classmethod
-    def load(cls) -> "Config":
+    def load(cls) -> Config:
         try:
             raw = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
         except (OSError, ValueError):

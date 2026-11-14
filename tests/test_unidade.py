@@ -80,9 +80,9 @@ def test_review_state_arquivo_corrompido_vira_vazio(tmp_path):
 def test_build_session_filtra_e_sorteia_em_ordem(tmp_path):
     state = ReviewState(tmp_path)
     state.record("c.mp4", KEEP)
-    entries = [
-        VideoEntry(tmp_path / f"{n}.mp4", thumb=tmp_path / f"{n}.jpg") for n in "abcdef"
-    ] + [VideoEntry(tmp_path / "sem.mp4")]
+    entries = [VideoEntry(tmp_path / f"{n}.mp4", thumb=tmp_path / f"{n}.jpg") for n in "abcdef"] + [
+        VideoEntry(tmp_path / "sem.mp4")
+    ]
     todos = library.build_session(
         entries, state, random_session=False, session_size=0, skip_reviewed=True
     )
@@ -99,7 +99,12 @@ def test_sessao_salva_e_retomada(tmp_path):
     entries = [VideoEntry(tmp_path / f"{n}.mp4") for n in "abc"]
     entries[0].decision = DELETE
     library.save_session(
-        tmp_path, entries, 1, videos_dir=tmp_path, trash_dir=tmp_path / "t", maybe_dir=tmp_path / "m"
+        tmp_path,
+        entries,
+        1,
+        videos_dir=tmp_path,
+        trash_dir=tmp_path / "t",
+        maybe_dir=tmp_path / "m",
     )
     salva = library.load_session(tmp_path)
     assert salva.total == 3 and salva.decided == 1 and salva.index == 1

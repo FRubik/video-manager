@@ -5,10 +5,10 @@ from __future__ import annotations
 import functools
 import shutil
 import subprocess
+from collections.abc import Callable, Iterable
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Iterable
 
 import cv2
 import numpy as np
@@ -62,8 +62,12 @@ def _draw_timestamp(img: Image.Image, text: str, font) -> None:
     w, h = img.size
     x, y = 10, h - 10 - text_h
     draw.rectangle(
-        [max(0, x - padding), max(0, y - padding),
-         min(w, x + text_w + padding), min(h, y + text_h + padding)],
+        [
+            max(0, x - padding),
+            max(0, y - padding),
+            min(w, x + text_w + padding),
+            min(h, y + text_h + padding),
+        ],
         fill=(0, 0, 0),
     )
     draw.text((x, y), text, font=font, fill=(255, 255, 255))
@@ -144,9 +148,21 @@ def _ffmpeg_one_frame(video_path: Path, t: float) -> np.ndarray | None:
     derrubava o VLC.
     """
     cmd = [
-        "ffmpeg", "-nostdin", "-loglevel", "error",
-        "-ss", f"{t:.3f}", "-i", str(video_path),
-        "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-",
+        "ffmpeg",
+        "-nostdin",
+        "-loglevel",
+        "error",
+        "-ss",
+        f"{t:.3f}",
+        "-i",
+        str(video_path),
+        "-frames:v",
+        "1",
+        "-f",
+        "image2pipe",
+        "-vcodec",
+        "png",
+        "-",
     ]
     try:
         proc = subprocess.run(cmd, capture_output=True, env=launch_env(), timeout=120)
@@ -225,17 +241,25 @@ def header_height(top: np.ndarray) -> int:
 #: primeira que existir no sistema; a ordem cobre Linux, Windows e macOS
 _FONT_FILES: dict[bool, tuple[str, ...]] = {
     False: (
-        "DejaVuSans.ttf", "LiberationSans-Regular.ttf", "NotoSans-Regular.ttf",
-        "arial.ttf", "Arial.ttf", "Helvetica.ttc",
+        "DejaVuSans.ttf",
+        "LiberationSans-Regular.ttf",
+        "NotoSans-Regular.ttf",
+        "arial.ttf",
+        "Arial.ttf",
+        "Helvetica.ttc",
     ),
     True: (
-        "DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf", "NotoSans-Bold.ttf",
-        "arialbd.ttf", "Arial Bold.ttf", "Helvetica.ttc",
+        "DejaVuSans-Bold.ttf",
+        "LiberationSans-Bold.ttf",
+        "NotoSans-Bold.ttf",
+        "arialbd.ttf",
+        "Arial Bold.ttf",
+        "Helvetica.ttc",
     ),
 }
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _font(size: int, bold: bool = False):
     """Uma TrueType do sistema no tamanho pedido.
 
@@ -255,7 +279,7 @@ def _font(size: int, bold: bool = False):
         return ImageFont.load_default()
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _logo(height: int):
     """O ícone do programa na altura pedida, em cinza, ou None se não houver.
 
@@ -290,7 +314,7 @@ def _ellipsize(text: str, font, max_width: float) -> str:
             head -= 1
         else:
             tail -= 1
-        candidate = f"{text[:head]}…{text[len(text) - tail:]}"
+        candidate = f"{text[:head]}…{text[len(text) - tail :]}"
         if font.getlength(candidate) <= max_width:
             return candidate
     return "…"
@@ -338,22 +362,24 @@ def _header_image(width: int, lines: list[tuple[str, str]]):
     else:
         top = max(pad_y, (height - block_h) // 2)
         right = width - pad_x
-        draw.text((right, top), WATERMARK_TITLE, font=mark_font,
-                  fill=WATERMARK_FG, anchor="ra")
-        draw.text((right, top + mark_font.size + 4), WATERMARK_SUB, font=sub_font,
-                  fill=WATERMARK_FG, anchor="ra")
+        draw.text((right, top), WATERMARK_TITLE, font=mark_font, fill=WATERMARK_FG, anchor="ra")
+        draw.text(
+            (right, top + mark_font.size + 4),
+            WATERMARK_SUB,
+            font=sub_font,
+            fill=WATERMARK_FG,
+            anchor="ra",
+        )
         if logo is not None:
             desenho, mascara = logo
-            image.paste(desenho, (round(right - text_w - size * 0.7) - desenho.width, top),
-                        mascara)
+            image.paste(desenho, (round(right - text_w - size * 0.7) - desenho.width, top), mascara)
 
     available = width - value_x - pad_x - (mark_w + size * 1.5 if mark_w else 0)
     for row, (label, value) in enumerate(lines):
         y = pad_y + row * line_h
         draw.text((pad_x, y), label, font=font, fill=HEADER_FG)
         draw.text((colon_x, y), ":", font=font, fill=HEADER_DIM)
-        draw.text((value_x, y), _ellipsize(value, font, available),
-                  font=font, fill=HEADER_FG)
+        draw.text((value_x, y), _ellipsize(value, font, available), font=font, fill=HEADER_FG)
     return image
 
 
@@ -375,7 +401,7 @@ def _compose(
     font = ImageFont.load_default()
 
     cells: list[Image.Image] = []
-    for t, frame_bgr in zip(times, frames):
+    for t, frame_bgr in zip(times, frames, strict=True):
         if frame_bgr is None:
             cells.append(Image.new("RGB", (cell_w, cell_h), (0, 0, 0)))
             continue
@@ -393,8 +419,10 @@ def _compose(
     gap = max(0, int(opts.spacing))
     grid = Image.new(
         "RGB",
-        (cell_w * opts.n_cols + gap * (opts.n_cols + 1),
-         cell_h * opts.n_rows + gap * (opts.n_rows + 1)),
+        (
+            cell_w * opts.n_cols + gap * (opts.n_cols + 1),
+            cell_h * opts.n_rows + gap * (opts.n_rows + 1),
+        ),
         GRID_BG,
     )
     for idx, cell in enumerate(cells):
@@ -477,9 +505,7 @@ def extract_sheet(
         n_thumbs = opts.n_rows * opts.n_cols
         times = np.linspace(start_time, end_time, n_thumbs + 2)[1:-1]
 
-        frames, cancelled = _grab_opencv(
-            cap, times, total_frames, fps, should_cancel, on_step
-        )
+        frames, cancelled = _grab_opencv(cap, times, total_frames, fps, should_cancel, on_step)
         cap.release()
         if cancelled:
             return cancelado
@@ -535,7 +561,12 @@ def generate(
     with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = {
             executor.submit(
-                extract_sheet, v, output_dir, opts, should_cancel, on_step,
+                extract_sheet,
+                v,
+                output_dir,
+                opts,
+                should_cancel,
+                on_step,
                 on_ffmpeg_fallback,
             ): v
             for v in videos

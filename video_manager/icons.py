@@ -53,6 +53,9 @@ def desktop_entry_installed() -> bool:
     home = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
     system = os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share"
     for data_dir in [home, *system.split(":")]:
-        if data_dir and (Path(data_dir) / "applications" / f"{DESKTOP_FILE_NAME}.desktop").is_file():
+        if (
+            data_dir
+            and (Path(data_dir) / "applications" / f"{DESKTOP_FILE_NAME}.desktop").is_file()
+        ):
             return True
     return False

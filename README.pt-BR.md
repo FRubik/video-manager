@@ -447,7 +447,9 @@ formatação, atalhos, config) e de ponta a ponta: vídeos sintéticos gerados n
 hora viram folhas, e uma revisão é conduzida pela janela principal de verdade,
 conferindo que cada arquivo foi parar na pasta certa. Roda sem tela
 (`QT_QPA_PLATFORM=offscreen`) e num `HOME` descartável, então nunca mexe na sua
-config. Toda alteração roda a suíte antes do commit.
+config. A suíte também roda o [Ruff](https://docs.astral.sh/ruff/) (lint e
+formatação, configurado no `pyproject.toml`). Toda alteração roda a suíte antes
+do commit.
 
 Os prints lá de cima saem do próprio programa, sobre vídeos sintéticos:
 `uv run python scripts/gerar_prints.py` os refaz em `assets/prints/`.

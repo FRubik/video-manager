@@ -452,7 +452,9 @@ shortcuts, config) and end-to-end ones: synthetic videos are generated on the
 spot, turned into contact sheets, and a review is driven through the real main
 window, checking that each file ends up in the right folder. It runs without a
 screen (`QT_QPA_PLATFORM=offscreen`) and in a throwaway `HOME`, so it never
-touches your own config. Every change runs the suite before a commit.
+touches your own config. The suite also runs [Ruff](https://docs.astral.sh/ruff/)
+(lint and formatting, configured in `pyproject.toml`). Every change runs it before
+a commit.
 
 The screenshots above come from the program itself, over synthetic videos:
 `uv run python scripts/gerar_prints.py` regenerates them in `assets/prints/`.

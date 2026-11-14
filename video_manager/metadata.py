@@ -59,10 +59,7 @@ def normalize(selection) -> list[str]:
     if not isinstance(selection, (list, tuple, set)):
         return list(DEFAULTS)
     chosen = {k for k in selection if k in BY_KEY}
-    return [
-        f.key for f in FIELDS
-        if f.key in chosen and (f.parent is None or f.parent in chosen)
-    ]
+    return [f.key for f in FIELDS if f.key in chosen and (f.parent is None or f.parent in chosen)]
 
 
 def needs_ffprobe(selection) -> bool:
@@ -122,8 +119,15 @@ def probe(info: VideoInfo, timeout: float = 30.0) -> VideoInfo:
     if not has_ffprobe():
         return info
     cmd = [
-        "ffprobe", "-v", "error", "-print_format", "json",
-        "-show_format", "-show_streams", "--", str(info.path),
+        "ffprobe",
+        "-v",
+        "error",
+        "-print_format",
+        "json",
+        "-show_format",
+        "-show_streams",
+        "--",
+        str(info.path),
     ]
     try:
         proc = subprocess.run(cmd, capture_output=True, env=launch_env(), timeout=timeout)
@@ -218,12 +222,28 @@ def _as_fraction(value) -> float | None:
 
 #: nome bonito do codec; o que não estiver aqui sai em maiúsculas
 CODEC_NAMES: dict[str, str] = {
-    "h264": "AVC", "hevc": "HEVC", "av1": "AV1", "vp9": "VP9", "vp8": "VP8",
-    "mpeg4": "MPEG-4", "mpeg2video": "MPEG-2", "wmv3": "WMV", "vc1": "VC-1",
-    "theora": "Theora", "prores": "ProRes",
-    "aac": "AAC", "ac3": "AC-3", "eac3": "E-AC-3", "mp3": "MP3", "opus": "Opus",
-    "flac": "FLAC", "vorbis": "Vorbis", "dts": "DTS", "truehd": "TrueHD",
-    "pcm_s16le": "PCM", "wmav2": "WMA",
+    "h264": "AVC",
+    "hevc": "HEVC",
+    "av1": "AV1",
+    "vp9": "VP9",
+    "vp8": "VP8",
+    "mpeg4": "MPEG-4",
+    "mpeg2video": "MPEG-2",
+    "wmv3": "WMV",
+    "vc1": "VC-1",
+    "theora": "Theora",
+    "prores": "ProRes",
+    "aac": "AAC",
+    "ac3": "AC-3",
+    "eac3": "E-AC-3",
+    "mp3": "MP3",
+    "opus": "Opus",
+    "flac": "FLAC",
+    "vorbis": "Vorbis",
+    "dts": "DTS",
+    "truehd": "TrueHD",
+    "pcm_s16le": "PCM",
+    "wmav2": "WMA",
 }
 
 

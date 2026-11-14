@@ -24,7 +24,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
 
 # o pacote antes do cv2: ele guarda o ambiente antes de o cv2 reescrevê-lo
-from video_manager import config, i18n, library, thumbs  # noqa: E402, I001
+from video_manager import config, library, thumbs  # noqa: E402, I001
 
 import cv2  # noqa: E402
 import numpy as np  # noqa: E402
