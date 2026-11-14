@@ -38,6 +38,22 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["video_manager"]
 
+# padrões ancorados na raiz: o hatch não lê o .git/info/exclude, e sem isto o
+# sdist levava o CLAUDE.md e o .claude/ pessoais
+[tool.hatch.build.targets.sdist]
+include = [
+    "/video_manager/",
+    "/tests/",
+    "/scripts/",
+    "/assets/",
+    "/packaging/",
+    "/README.md",
+    "/README.pt-BR.md",
+    "/LICENSE",
+    "/pyproject.toml",
+    "/uv.lock",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=9.2.0",
