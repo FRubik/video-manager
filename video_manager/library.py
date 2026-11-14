@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import random
@@ -16,8 +17,18 @@ from . import i18n
 from .i18n import tr
 
 VIDEO_EXTS = {
-    ".mp4", ".avi", ".mov", ".mkv", ".webm", ".wmv",
-    ".flv", ".m4v", ".mpg", ".mpeg", ".ts", ".3gp",
+    ".mp4",
+    ".avi",
+    ".mov",
+    ".mkv",
+    ".webm",
+    ".wmv",
+    ".flv",
+    ".m4v",
+    ".mpg",
+    ".mpeg",
+    ".ts",
+    ".3gp",
 }
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 
@@ -87,10 +98,7 @@ def list_videos(videos_dir: Path) -> list[Path]:
     """Vídeos no primeiro nível da pasta, em ordem alfabética."""
     if not videos_dir.is_dir():
         return []
-    videos = [
-        p for p in videos_dir.iterdir()
-        if p.is_file() and p.suffix.lower() in VIDEO_EXTS
-    ]
+    videos = [p for p in videos_dir.iterdir() if p.is_file() and p.suffix.lower() in VIDEO_EXTS]
     return sorted(videos, key=lambda p: p.name.lower())
 
 
@@ -248,8 +256,7 @@ def save_session(
         "maybe_dir": str(maybe_dir),
         "index": index,
         "items": [
-            {"name": e.name, "from_maybe": e.from_maybe, "decision": e.decision}
-            for e in entries
+            {"name": e.name, "from_maybe": e.from_maybe, "decision": e.decision} for e in entries
         ],
     }
     try:
@@ -293,10 +300,8 @@ def load_session(thumbs_dir: Path) -> SavedSession | None:
 
 
 def clear_session(thumbs_dir: Path) -> None:
-    try:
+    with contextlib.suppress(OSError):
         session_path(thumbs_dir).unlink(missing_ok=True)
-    except OSError:
-        pass
 
 
 def restore_session(
@@ -423,10 +428,8 @@ def folder_size(folder: Path) -> tuple[int, int]:
     total = 0
     videos = list_videos(folder)
     for video in videos:
-        try:
+        with contextlib.suppress(OSError):
             total += video.stat().st_size
-        except OSError:
-            pass
     return len(videos), total
 
 
@@ -474,9 +477,7 @@ def collect_stats(
     histórico para os mesmos vídeos — assim a projeção reage enquanto você
     revisa, e não só depois de aplicar.
     """
-    pendente_na_sessao = {
-        e.name: e.decision for e in (session or []) if e.decision is not None
-    }
+    pendente_na_sessao = {e.name: e.decision for e in (session or []) if e.decision is not None}
 
     # nome -> (decisão final, bytes); inclui vídeos que já saíram da pasta
     decididos: dict[str, tuple[str, int]] = {}
@@ -587,8 +588,7 @@ def free_pair(
         candidato = stem if numero == 1 else f"{stem} ({numero})"
         novo_video = video.with_name(candidato + video.suffix)
         nova_thumb = (
-            None if thumb is None
-            else thumb.with_name(paired_thumb_name(thumb, video, novo_video))
+            None if thumb is None else thumb.with_name(paired_thumb_name(thumb, video, novo_video))
         )
         ocupada = find_thumb(novo_video, index)
         livre = (
@@ -601,9 +601,7 @@ def free_pair(
         numero += 1
 
 
-def rename_pair(
-    video: Path, thumb: Path | None, novo_video: Path, nova_thumb: Path | None
-) -> None:
+def rename_pair(video: Path, thumb: Path | None, novo_video: Path, nova_thumb: Path | None) -> None:
     """Renomeia o vídeo e a thumb para os caminhos calculados por `free_pair`.
 
     A thumb vai primeiro: se o vídeo falhar, ela volta ao nome anterior e o par

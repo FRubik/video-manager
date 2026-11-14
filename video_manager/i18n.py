@@ -99,19 +99,16 @@ STRINGS: dict[str, dict[str, str]] = {
     "format.datetime": {"pt": "%d/%m às %H:%M", "en": "%m/%d at %H:%M"},
     # no cabeçalho da folha o ano importa: dois arquivos iguais de anos diferentes
     "format.file_datetime": {"pt": "%d/%m/%Y %H:%M", "en": "%Y-%m-%d %H:%M"},
-
     # ------------------------------------------------------------- decisões
     "decision.keep": {"pt": "manter", "en": "keep"},
     "decision.maybe": {"pt": "talvez", "en": "maybe"},
     "decision.delete": {"pt": "apagar", "en": "delete"},
-
     # ------------------------------------------------------- tela: idioma
     "setup.language": {"pt": "Idioma:", "en": "Language:"},
     "setup.language.tip": {
         "pt": "Troca o idioma da interface na hora. A escolha fica salva.",
         "en": "Switches the interface language right away. The choice is saved.",
     },
-
     # ------------------------------------------------------- tela: pastas
     "setup.folders": {"pt": "Pastas", "en": "Folders"},
     "setup.folders.videos": {"pt": "Vídeos:", "en": "Videos:"},
@@ -147,14 +144,13 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Point “maybe” at <videos folder>/{name}",
     },
     "setup.folders.browse": {"pt": "Escolher pasta", "en": "Choose folder"},
-
     # --------------------------------------------------- tela: thumbnails
     "setup.gen": {"pt": "Gerar thumbnails", "en": "Generate thumbnails"},
     "setup.gen.tip": {
         "pt": "Desmarcado: “Iniciar” abre direto a revisão usando as thumbs já existentes. "
-              "Para só gerar, use “Somente gerar thumbnails”.",
+        "Para só gerar, use “Somente gerar thumbnails”.",
         "en": "Unchecked: “Start” goes straight to the review screen using the existing "
-              "thumbnails. To only generate them, use “Generate thumbnails only”.",
+        "thumbnails. To only generate them, use “Generate thumbnails only”.",
     },
     "setup.gen.only_missing": {
         "pt": "Somente vídeos que ainda não têm thumbnail",
@@ -162,68 +158,68 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "setup.gen.only_missing.tip": {
         "pt": "Refaz apenas o que falta — útil quando uma geração anterior parou no meio. "
-              "Desmarcado, todas as thumbnails são geradas de novo.",
+        "Desmarcado, todas as thumbnails são geradas de novo.",
         "en": "Only fills the gaps — handy when an earlier run stopped halfway. "
-              "Unchecked, every thumbnail is generated again.",
+        "Unchecked, every thumbnail is generated again.",
     },
     "setup.gen.grid": {"pt": "Grade:", "en": "Grid:"},
     "setup.gen.rows": {"pt": "linhas", "en": "rows"},
     "setup.gen.cols": {"pt": "colunas", "en": "columns"},
     "setup.gen.grid.tip": {
         "pt": "Quantos frames a folha tem: 5 × 5 = 25 instantes ao longo do vídeo. "
-              "É o que mais pesa no tempo de geração — o custo é por célula, então "
-              "uma 3 × 3 sai em cerca de um terço do tempo de uma 5 × 5.",
+        "É o que mais pesa no tempo de geração — o custo é por célula, então "
+        "uma 3 × 3 sai em cerca de um terço do tempo de uma 5 × 5.",
         "en": "How many frames the sheet holds: 5 × 5 = 25 moments across the video. "
-              "It is what weighs most on generation time — the cost is per cell, so a "
-              "3 × 3 takes about a third of the time of a 5 × 5.",
+        "It is what weighs most on generation time — the cost is per cell, so a "
+        "3 × 3 takes about a third of the time of a 5 × 5.",
     },
     "setup.gen.details": {"pt": "Detalhes:", "en": "Details:"},
     "setup.gen.cell_height": {"pt": "altura da célula", "en": "cell height"},
     "setup.gen.cell_height.tip": {
         "pt": "Altura de cada frame na folha, em pixels; a largura sai sozinha da "
-              "proporção do vídeo (200 px num 16:9 dá células de 355 × 200). Decide o "
-              "tamanho da folha e o quanto se enxerga no zoom 1:1 da revisão — quase "
-              "não muda o tempo de geração.",
+        "proporção do vídeo (200 px num 16:9 dá células de 355 × 200). Decide o "
+        "tamanho da folha e o quanto se enxerga no zoom 1:1 da revisão — quase "
+        "não muda o tempo de geração.",
         "en": "Height of each frame on the sheet, in pixels; the width follows the "
-              "video’s aspect ratio (200 px on a 16:9 gives 355 × 200 cells). It sets "
-              "the sheet size and how much you can see in the review’s 1:1 zoom — it "
-              "barely affects generation time.",
+        "video’s aspect ratio (200 px on a 16:9 gives 355 × 200 cells). It sets "
+        "the sheet size and how much you can see in the review’s 1:1 zoom — it "
+        "barely affects generation time.",
     },
     "setup.gen.margin": {"pt": "margem", "en": "margin"},
     "setup.gen.margin.tip": {
         "pt": "Fatia do começo e do fim do vídeo que fica de fora. Com 0,05 os frames "
-              "saem entre 5% e 95% da duração, o que evita gastar células com a "
-              "abertura preta e com os créditos. Em 0,00 a folha cobre o vídeo inteiro.",
+        "saem entre 5% e 95% da duração, o que evita gastar células com a "
+        "abertura preta e com os créditos. Em 0,00 a folha cobre o vídeo inteiro.",
         "en": "Slice of the start and the end left out. At 0.05 the frames are taken "
-              "between 5% and 95% of the runtime, which keeps cells from being spent on "
-              "a black opening and on credits. At 0.00 the sheet covers the whole video.",
+        "between 5% and 95% of the runtime, which keeps cells from being spent on "
+        "a black opening and on credits. At 0.00 the sheet covers the whole video.",
     },
     "setup.gen.spacing": {"pt": "espaço", "en": "spacing"},
     "setup.gen.spacing.tip": {
         "pt": "Espaço em pixels entre os frames e na borda da folha. Em 0 as células "
-              "ficam coladas, como numa tira de filme; alguns pixels separam cenas "
-              "parecidas e deixam claro onde uma acaba e a outra começa.",
+        "ficam coladas, como numa tira de filme; alguns pixels separam cenas "
+        "parecidas e deixam claro onde uma acaba e a outra começa.",
         "en": "Space in pixels between the frames and around the sheet. At 0 the cells "
-              "sit flush, like a film strip; a few pixels pull similar scenes apart and "
-              "make it clear where one ends and the next begins.",
+        "sit flush, like a film strip; a few pixels pull similar scenes apart and "
+        "make it clear where one ends and the next begins.",
     },
     "setup.gen.workers": {"pt": "threads", "en": "threads"},
     "setup.gen.workers.tip": {
         "pt": "Quantos vídeos são processados ao mesmo tempo — não quantos frames de um "
-              "mesmo vídeo, que saem sempre em sequência. Em disco interno rápido, mais "
-              "threads ajudam até o número de núcleos; em HD externo, 2 ou 3 costumam "
-              "render mais que 6, porque o gargalo passa a ser o disco.",
+        "mesmo vídeo, que saem sempre em sequência. Em disco interno rápido, mais "
+        "threads ajudam até o número de núcleos; em HD externo, 2 ou 3 costumam "
+        "render mais que 6, porque o gargalo passa a ser o disco.",
         "en": "How many videos are processed at the same time — not how many frames of "
-              "one video, which always come in sequence. On a fast internal disk more "
-              "threads help up to the core count; on an external drive 2 or 3 often beat "
-              "6, because the bottleneck becomes the disk.",
+        "one video, which always come in sequence. On a fast internal disk more "
+        "threads help up to the core count; on an external drive 2 or 3 often beat "
+        "6, because the bottleneck becomes the disk.",
     },
     "setup.gen.defaults": {"pt": "Restaurar padrões", "en": "Restore defaults"},
     "setup.gen.defaults.tip": {
         "pt": "Devolve as opções deste quadro aos valores de fábrica, inclusive as "
-              "informações do cabeçalho. As pastas e a sessão de revisão não mudam.",
+        "informações do cabeçalho. As pastas e a sessão de revisão não mudam.",
         "en": "Puts the options in this box back to their factory values, header "
-              "information included. Folders and the review session are left alone.",
+        "information included. Folders and the review session are left alone.",
     },
     "setup.gen.timestamp": {
         "pt": "Escrever o tempo em cada frame",
@@ -235,16 +231,15 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "setup.gen.header.tip": {
         "pt": "Faixa no topo da folha com nome, tamanho, resolução e duração — o que não "
-              "se vê nos frames. Vale só para as folhas geradas daqui em diante.",
+        "se vê nos frames. Vale só para as folhas geradas daqui em diante.",
         "en": "A band at the top of the sheet with name, size, resolution and duration — "
-              "what the frames don’t show. Only applies to sheets generated from now on.",
+        "what the frames don’t show. Only applies to sheets generated from now on.",
     },
     "setup.gen.header.choose": {"pt": "Escolher informações…", "en": "Choose information…"},
     "setup.gen.header.choose.tip": {
         "pt": "Escolhe quais informações entram no cabeçalho.",
         "en": "Picks which pieces of information go into the header.",
     },
-
     # ------------------------------------------ diálogo: informações do cabeçalho
     "header.title": {
         "pt": "Informações do cabeçalho",
@@ -256,15 +251,15 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "header.note": {
         "pt": "As folhas já geradas não mudam — o cabeçalho vale para as próximas. "
-              "Um campo sem dado (vídeo sem áudio, por exemplo) é simplesmente omitido.",
+        "Um campo sem dado (vídeo sem áudio, por exemplo) é simplesmente omitido.",
         "en": "Sheets already generated don’t change — the header applies to the next ones. "
-              "A field with nothing to say (a video with no audio, say) is left out.",
+        "A field with nothing to say (a video with no audio, say) is left out.",
     },
     "header.ffprobe.missing": {
         "pt": "Os campos marcados com * dependem do `ffprobe` (parte do ffmpeg), que não "
-              "está instalado nesta máquina. Eles ficam de fora até que esteja.",
+        "está instalado nesta máquina. Eles ficam de fora até que esteja.",
         "en": "The fields marked with * need `ffprobe` (part of ffmpeg), which is not "
-              "installed on this machine. They stay out until it is.",
+        "installed on this machine. They stay out until it is.",
     },
     "header.field.name": {"pt": "Nome do arquivo", "en": "File name"},
     "header.field.size": {"pt": "Tamanho em disco", "en": "Size on disk"},
@@ -294,7 +289,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt": "Número de faixas de áudio, quando houver mais de uma",
         "en": "Number of audio tracks, when there is more than one",
     },
-
     # ------------------------------------------------ folha: rótulos do cabeçalho
     "sheet.header.name": {"pt": "Arquivo", "en": "File Name"},
     "sheet.header.size": {"pt": "Tamanho", "en": "File Size"},
@@ -306,7 +300,6 @@ STRINGS: dict[str, dict[str, str]] = {
     "sheet.value.channels": {"pt": "{n} canais", "en": "{n} channels"},
     "sheet.value.streams": {"pt": "{n} faixas", "en": "{n} streams"},
     "sheet.value.bit_depth": {"pt": "{n} bits", "en": "{n} bit"},
-
     # ------------------------------------------------------- tela: sessão
     "setup.session": {"pt": "Sessão de revisão", "en": "Review session"},
     "setup.session.all": {
@@ -328,11 +321,11 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "setup.session.shuffle.tip": {
         "pt": "Embaralha a ordem de exibição da sessão. Útil numa pasta onde os "
-              "nomes agrupam o conteúdo — a ordem alfabética faz você ver tudo de "
-              "um tipo de uma vez.",
+        "nomes agrupam o conteúdo — a ordem alfabética faz você ver tudo de "
+        "um tipo de uma vez.",
         "en": "Shuffles the order the session is shown in. Useful in a folder where "
-              "the names group the content — alphabetical order makes you watch "
-              "everything of one kind in a row.",
+        "the names group the content — alphabetical order makes you watch "
+        "everything of one kind in a row.",
     },
     "setup.session.maybe_label": {
         "pt": "Vídeos do “talvez”:",
@@ -347,15 +340,14 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "setup.session.maybe.include.tip": {
         "pt": "Traz de volta o que ficou na pasta “talvez”, junto com os demais. "
-              "Manter devolve o vídeo à pasta de vídeos; apagar manda para a quarentena.",
+        "Manter devolve o vídeo à pasta de vídeos; apagar manda para a quarentena.",
         "en": "Brings back whatever is sitting in the “maybe” folder, alongside the rest. "
-              "Keeping returns the video to the videos folder; deleting sends it to quarantine.",
+        "Keeping returns the video to the videos folder; deleting sends it to quarantine.",
     },
     "setup.session.maybe.only.tip": {
         "pt": "A sessão inteira é feita das dúvidas anteriores — nenhum vídeo novo entra.",
         "en": "The whole session is made of earlier doubts — no new video comes in.",
     },
-
     # ------------------------------------------------ tela: sessão salva
     "setup.resume.button": {"pt": "Retomar", "en": "Resume"},
     "setup.resume.button.tip": {
@@ -368,11 +360,11 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "setup.resume.label": {
         "pt": "<b>Sessão interrompida</b> em {when} — {total} vídeo(s), "
-              "{decided} decidido(s), parou no #{position}.<br>"
-              "<i>Nada foi movido: as decisões são aplicadas quando você finalizar.</i>",
+        "{decided} decidido(s), parou no #{position}.<br>"
+        "<i>Nada foi movido: as decisões são aplicadas quando você finalizar.</i>",
         "en": "<b>Session interrupted</b> on {when} — {total} video(s), "
-              "{decided} decided, stopped at #{position}.<br>"
-              "<i>Nothing was moved: decisions are applied when you finish.</i>",
+        "{decided} decided, stopped at #{position}.<br>"
+        "<i>Nothing was moved: decisions are applied when you finish.</i>",
     },
     "setup.resume.discard.title": {
         "pt": "Descartar sessão salva",
@@ -380,11 +372,10 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "setup.resume.discard.body": {
         "pt": "As decisões guardadas nessa sessão são perdidas e os vídeos voltam "
-              "a entrar em sessões novas.\n\nNenhum arquivo é movido ou apagado.",
+        "a entrar em sessões novas.\n\nNenhum arquivo é movido ou apagado.",
         "en": "The decisions stored in that session are lost and the videos go back "
-              "into new sessions.\n\nNo file is moved or deleted.",
+        "into new sessions.\n\nNo file is moved or deleted.",
     },
-
     # ---------------------------------------------------- tela: resumo
     "setup.summary.no_folder": {
         "pt": "Selecione uma pasta de vídeos válida para começar.",
@@ -392,9 +383,9 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "setup.summary.counts": {
         "pt": "<b>{total}</b> vídeos · <b>{with_thumb}</b> com thumbnail · "
-              "<b>{missing}</b> sem thumbnail",
+        "<b>{missing}</b> sem thumbnail",
         "en": "<b>{total}</b> videos · <b>{with_thumb}</b> with a thumbnail · "
-              "<b>{missing}</b> without one",
+        "<b>{missing}</b> without one",
     },
     "setup.summary.reviewed": {
         "pt": "<b>{n}</b> já revisados em sessões anteriores",
@@ -412,23 +403,22 @@ STRINGS: dict[str, dict[str, str]] = {
     "setup.summary.order_random": {"pt": " em ordem randômica", "en": " in random order"},
     "setup.summary.maybe_empty": {
         "pt": "<i>A pasta “talvez” está vazia (ou os vídeos dela não têm thumbnail) — "
-              "não há dúvida anterior para rever.</i>",
+        "não há dúvida anterior para rever.</i>",
         "en": "<i>The “maybe” folder is empty (or its videos have no thumbnail) — "
-              "there is no earlier doubt to revisit.</i>",
+        "there is no earlier doubt to revisit.</i>",
     },
     "setup.summary.missing_thumbs": {
         "pt": "<i>Os vídeos sem thumbnail ficam de fora — marque “Gerar thumbnails” "
-              "para incluí-los.</i>",
+        "para incluí-los.</i>",
         "en": "<i>Videos without a thumbnail are left out — check “Generate thumbnails” "
-              "to include them.</i>",
+        "to include them.</i>",
     },
-
     # ---------------------------------------------------- tela: volume
     "setup.volume.tip": {
         "pt": "A projeção aplica ao volume ainda não revisado a mesma proporção "
-              "de descarte das decisões que você já tomou.",
+        "de descarte das decisões que você já tomou.",
         "en": "The projection applies to the not-yet-reviewed volume the same discard "
-              "ratio as the decisions you have already made.",
+        "ratio as the decisions you have already made.",
     },
     "setup.volume.total": {
         "pt": "<b>{size}</b> em {count} vídeo(s)",
@@ -444,37 +434,36 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "setup.volume.no_rate": {
         "pt": "<i>A projeção do tamanho final aparece depois de {n} vídeos decididos "
-              "nesta versão — as decisões anteriores não registraram o tamanho.</i>",
+        "nesta versão — as decisões anteriores não registraram o tamanho.</i>",
         "en": "<i>The final-size projection shows up after {n} videos decided in this "
-              "version — earlier decisions did not record the size.</i>",
+        "version — earlier decisions did not record the size.</i>",
     },
     "setup.volume.rate": {
         "pt": "Você descarta <b>{rate}</b> do volume que decide "
-              "({count} vídeos decididos, {size}).",
+        "({count} vídeos decididos, {size}).",
         "en": "You discard <b>{rate}</b> of the volume you decide on "
-              "({count} videos decided, {size}).",
+        "({count} videos decided, {size}).",
     },
     "setup.volume.projection": {
         "pt": "Faltam decidir {pending} — nesse ritmo, devem sobrar "
-              "<b>{remaining}</b> no fim do processo.",
+        "<b>{remaining}</b> no fim do processo.",
         "en": "{pending} still to decide — at this pace, <b>{remaining}</b> should be "
-              "left when it is over.",
+        "left when it is over.",
     },
-
     # ---------------------------------------------------- tela: esvaziar quarentena
     "setup.empty_trash.button": {"pt": "Esvaziar quarentena", "en": "Empty quarantine"},
     "setup.empty_trash.button.tip": {
         "pt": "Apaga em definitivo os vídeos da pasta de descarte e as thumbs deles — "
-              "libera o espaço sem mexer nas thumbs dos vídeos ainda pendentes.",
+        "libera o espaço sem mexer nas thumbs dos vídeos ainda pendentes.",
         "en": "Permanently deletes the videos in the discard folder and their thumbs — "
-              "frees the space without touching the thumbs of videos still pending.",
+        "frees the space without touching the thumbs of videos still pending.",
     },
     "setup.empty_trash.title": {"pt": "Esvaziar quarentena", "en": "Empty quarantine"},
     "setup.empty_trash.body": {
         "pt": "Isso apaga em definitivo {count} vídeo(s) ({size}) da pasta de descarte, "
-              "junto com as thumbs deles. Não tem como desfazer.",
+        "junto com as thumbs deles. Não tem como desfazer.",
         "en": "This permanently deletes {count} video(s) ({size}) from the discard "
-              "folder, along with their thumbs. This cannot be undone.",
+        "folder, along with their thumbs. This cannot be undone.",
     },
     "setup.empty_trash.done.title": {
         "pt": "Quarentena esvaziada",
@@ -484,7 +473,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt": "{count} vídeo(s) apagado(s), {size} liberados.",
         "en": "{count} video(s) deleted, {size} freed.",
     },
-
     # ---------------------------------------------------- tela: ações
     "setup.rescan": {"pt": "Reanalisar pastas", "en": "Rescan folders"},
     "setup.shortcuts": {"pt": "Atalhos…", "en": "Shortcuts…"},
@@ -498,11 +486,9 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "setup.generate.tip": {
         "pt": "Gera as thumbnails e volta para esta tela, sem abrir a revisão.",
-        "en": "Generates the thumbnails and comes back to this screen, without opening "
-              "the review.",
+        "en": "Generates the thumbnails and comes back to this screen, without opening the review.",
     },
     "setup.start": {"pt": "Iniciar", "en": "Start"},
-
     # ------------------------------------------------------ avisos: início
     "app.invalid_folder.title": {"pt": "Pasta inválida", "en": "Invalid folder"},
     "app.invalid_folder.body": {
@@ -515,17 +501,14 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Tell me the folder where the thumbnails are (or will be) saved.",
     },
     "app.thumbs_folder.missing": {
-        "pt": "A pasta de thumbnails não existe. Marque “Gerar thumbnails” ou "
-              "corrija o caminho.",
-        "en": "The thumbnails folder does not exist. Check “Generate thumbnails” or "
-              "fix the path.",
+        "pt": "A pasta de thumbnails não existe. Marque “Gerar thumbnails” ou corrija o caminho.",
+        "en": "The thumbnails folder does not exist. Check “Generate thumbnails” or fix the path.",
     },
     "app.same_folders.title": {"pt": "Pastas iguais", "en": "Same folder twice"},
     "app.same_folders.body": {
         "pt": "As pastas de descartes e de “talvez” precisam ser diferentes.",
         "en": "The discards and “maybe” folders have to be different.",
     },
-
     # -------------------------------------------------- avisos: thumbnails
     "app.gen.nothing.title": {"pt": "Nada a gerar", "en": "Nothing to generate"},
     "app.gen.nothing.body": {
@@ -558,11 +541,11 @@ STRINGS: dict[str, dict[str, str]] = {
     "app.gen.cancelled.title": {"pt": "Geração cancelada", "en": "Generation cancelled"},
     "app.gen.cancelled.body": {
         "pt": "{ok} thumbnail(s) gerada(s) antes do cancelamento. As que faltam "
-              "continuam faltando — gere de novo com “somente vídeos que ainda não "
-              "têm thumbnail” para retomar de onde parou.",
+        "continuam faltando — gere de novo com “somente vídeos que ainda não "
+        "têm thumbnail” para retomar de onde parou.",
         "en": "{ok} thumbnail(s) generated before cancelling. The rest are still "
-              "missing — run it again with “only videos that have no thumbnail yet” "
-              "to pick up where it stopped.",
+        "missing — run it again with “only videos that have no thumbnail yet” "
+        "to pick up where it stopped.",
     },
     "app.gen.failed.title": {"pt": "Alguns vídeos falharam", "en": "Some videos failed"},
     "app.gen.failed.body": {
@@ -580,9 +563,9 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "app.gen.failed.move.body": {
         "pt": "Mover {count} vídeo(s) para:\n{folder}\n\n"
-              "A pasta é criada se não existir. Nenhuma thumbnail é tocada.",
+        "A pasta é criada se não existir. Nenhuma thumbnail é tocada.",
         "en": "Move {count} video(s) to:\n{folder}\n\n"
-              "The folder is created if it does not exist. No thumbnail is touched.",
+        "The folder is created if it does not exist. No thumbnail is touched.",
     },
     "app.gen.failed.moved.title": {"pt": "Vídeos movidos", "en": "Videos moved"},
     "app.gen.failed.moved.body": {
@@ -593,31 +576,30 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt": "\n\nNão foi possível mover:\n{detail}",
         "en": "\n\nCould not move:\n{detail}",
     },
-
     # ----------------------------------------------------- avisos: revisão
     "app.nothing.title": {"pt": "Nada para revisar", "en": "Nothing to review"},
     "app.nothing.only_maybe": {
         "pt": "Nenhum vídeo com thumbnail na pasta “talvez”.\n"
-              "Escolha “incluir na sessão” ou “deixar de fora” para rever o resto.",
+        "Escolha “incluir na sessão” ou “deixar de fora” para rever o resto.",
         "en": "No video with a thumbnail in the “maybe” folder.\n"
-              "Pick “include in the session” or “leave out” to review the rest.",
+        "Pick “include in the session” or “leave out” to review the rest.",
     },
     "app.nothing.all_reviewed": {
         "pt": "Nenhum vídeo com thumbnail pendente de revisão.\n"
-              "Desmarque “Pular vídeos já revisados” para rever tudo de novo.",
+        "Desmarque “Pular vídeos já revisados” para rever tudo de novo.",
         "en": "No video with a thumbnail is pending review.\n"
-              "Uncheck “Skip videos I already reviewed” to go through everything again.",
+        "Uncheck “Skip videos I already reviewed” to go through everything again.",
     },
     "app.overwrite.title": {"pt": "Há uma sessão salva", "en": "There is a saved session"},
     "app.overwrite.body": {
         "pt": "Existe uma sessão de {when} com {total} vídeo(s) e {decided} decisão(ões) "
-              "ainda não aplicada(s).\n\n"
-              "Começar uma sessão nova descarta essas marcações. "
-              "Para continuar de onde parou, volte e use “Retomar”.",
+        "ainda não aplicada(s).\n\n"
+        "Começar uma sessão nova descarta essas marcações. "
+        "Para continuar de onde parou, volte e use “Retomar”.",
         "en": "There is a session from {when} with {total} video(s) and {decided} decision(s) "
-              "not applied yet.\n\n"
-              "Starting a new session throws those marks away. "
-              "To continue where you stopped, go back and use “Resume”.",
+        "not applied yet.\n\n"
+        "Starting a new session throws those marks away. "
+        "To continue where you stopped, go back and use “Resume”.",
     },
     "app.resume.none.title": {"pt": "Sem sessão salva", "en": "No saved session"},
     "app.resume.none.body": {
@@ -628,7 +610,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "app.resume.empty.body": {
         "pt": "Nenhum vídeo da sessão salva ainda está nas pastas. A sessão foi descartada.",
         "en": "None of the saved session's videos are in the folders anymore. "
-              "The session was discarded.",
+        "The session was discarded.",
     },
     "app.resume.partial.title": {
         "pt": "Sessão retomada parcialmente",
@@ -636,11 +618,10 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "app.resume.partial.body": {
         "pt": "{missing} vídeo(s) da sessão não estão mais nas pastas e ficaram de fora.\n"
-              "Retomando com os {remaining} restantes.",
+        "Retomando com os {remaining} restantes.",
         "en": "{missing} video(s) from the session are no longer in the folders and were "
-              "left out.\nResuming with the remaining {remaining}.",
+        "left out.\nResuming with the remaining {remaining}.",
     },
-
     # -------------------------------------------------------- avisos: saída
     "app.exit.title": {"pt": "Sair da revisão", "en": "Leave the review"},
     "app.exit.text": {
@@ -649,16 +630,15 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "app.exit.detail": {
         "pt": "<b>Salvar</b> guarda a sessão como está — dá para retomar na tela inicial.<br>"
-              "<b>Aplicar</b> move os vídeos agora e encerra a sessão.<br>"
-              "<b>Descartar</b> perde as marcações.",
+        "<b>Aplicar</b> move os vídeos agora e encerra a sessão.<br>"
+        "<b>Descartar</b> perde as marcações.",
         "en": "<b>Save</b> stores the session as it is — you can resume it from the "
-              "start screen.<br>"
-              "<b>Apply</b> moves the videos now and ends the session.<br>"
-              "<b>Discard</b> loses the marks.",
+        "start screen.<br>"
+        "<b>Apply</b> moves the videos now and ends the session.<br>"
+        "<b>Discard</b> loses the marks.",
     },
     "app.exit.save": {"pt": "Salvar sessão e sair", "en": "Save session and leave"},
     "app.exit.apply": {"pt": "Aplicar e sair", "en": "Apply and leave"},
-
     # ----------------------------------------------------- tela de revisão
     "review.no_thumb": {
         "pt": "Sem thumbnail para este vídeo",
@@ -679,24 +659,23 @@ STRINGS: dict[str, dict[str, str]] = {
     "review.back": {"pt": "◀ Voltar", "en": "◀ Back"},
     "review.back.tip": {
         "pt": "Volta para a tela inicial sem mover nada.\n"
-              "As decisões e a posição já estão guardadas: dá para retomar depois.",
+        "As decisões e a posição já estão guardadas: dá para retomar depois.",
         "en": "Goes back to the start screen without moving anything.\n"
-              "The decisions and the position are already stored: you can resume later.",
+        "The decisions and the position are already stored: you can resume later.",
     },
     "review.finish": {"pt": "Aplicar e finalizar", "en": "Apply and finish"},
     "review.hint.zoom": {"pt": " · clique na imagem = zoom", "en": " · click the image = zoom"},
     "review.counts": {
         "pt": "{size}   ·   manter: {keep}   talvez: {maybe}   apagar: {delete}   "
-              "pendentes: {pending}{origin}",
+        "pendentes: {pending}{origin}",
         "en": "{size}   ·   keep: {keep}   maybe: {maybe}   delete: {delete}   "
-              "pending: {pending}{origin}",
+        "pending: {pending}{origin}",
     },
     "review.from_maybe": {"pt": "  ·   veio do “talvez”", "en": "  ·   came from “maybe”"},
     "review.status.keep": {"pt": "● MANTER", "en": "● KEEP"},
     "review.status.maybe": {"pt": "● TALVEZ", "en": "● MAYBE"},
     "review.status.delete": {"pt": "● APAGAR", "en": "● DELETE"},
     "review.status.pending": {"pt": "○ pendente", "en": "○ pending"},
-
     # ------------------------------------------------- revisão: rodapé
     "review.volume.folder": {"pt": "Pasta: {size}", "en": "Folder: {size}"},
     "review.volume.marked": {"pt": "marcado — {parts}", "en": "marked — {parts}"},
@@ -704,7 +683,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt": "projeção: ~{size} no fim ({rate} do volume decidido vai para a quarentena)",
         "en": "projection: ~{size} at the end ({rate} of the decided volume goes to quarantine)",
     },
-
     # ------------------------------------------------- revisão: diálogos
     "review.open.failed.title": {
         "pt": "Não foi possível abrir o vídeo",
@@ -721,17 +699,15 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "review.rename.invalid.title": {"pt": "Nome inválido", "en": "Invalid name"},
     "review.rename.invalid.body": {
-        "pt": "Sem os caracteres que um arquivo não pode ter ({chars}), "
-              "não sobrou nome nenhum.",
+        "pt": "Sem os caracteres que um arquivo não pode ter ({chars}), não sobrou nome nenhum.",
         "en": "Without the characters a file name cannot have ({chars}), "
-              "nothing was left of the name.",
+        "nothing was left of the name.",
     },
     "review.rename.taken.title": {"pt": "Nome já em uso", "en": "Name already in use"},
     "review.rename.taken.body": {
-        "pt": "Já existe “{name}” — renomear sobrescreveria esse arquivo.\n\n"
-              "Usar “{suggested}”?",
+        "pt": "Já existe “{name}” — renomear sobrescreveria esse arquivo.\n\nUsar “{suggested}”?",
         "en": "“{name}” already exists — renaming would overwrite that file.\n\n"
-              "Use “{suggested}” instead?",
+        "Use “{suggested}” instead?",
     },
     "review.rename.failed.title": {
         "pt": "Não foi possível renomear",
@@ -739,18 +715,18 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "review.rename.failed.body": {
         "pt": "{name}\n\n{reason}\n\nNada foi alterado: o vídeo e a thumbnail "
-              "continuam com o nome de antes.",
+        "continuam com o nome de antes.",
         "en": "{name}\n\n{reason}\n\nNothing changed: the video and the thumbnail "
-              "keep their previous name.",
+        "keep their previous name.",
     },
     "review.end.title": {"pt": "Fim da sessão", "en": "End of the session"},
     "review.end.body": {
         "pt": "Você revisou todos os {total} vídeos desta sessão.\n"
-              "{delete} para apagar ({delete_size}) · "
-              "{maybe} para rever depois ({maybe_size}).\n\nAplicar agora?",
+        "{delete} para apagar ({delete_size}) · "
+        "{maybe} para rever depois ({maybe_size}).\n\nAplicar agora?",
         "en": "You reviewed all {total} videos in this session.\n"
-              "{delete} to delete ({delete_size}) · "
-              "{maybe} to review later ({maybe_size}).\n\nApply now?",
+        "{delete} to delete ({delete_size}) · "
+        "{maybe} to review later ({maybe_size}).\n\nApply now?",
     },
     "review.confirm.title": {"pt": "Confirmar movimentações", "en": "Confirm the moves"},
     "review.confirm.line": {
@@ -788,8 +764,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt": "<br><br>No ritmo atual de descarte, a pasta deve estabilizar em <b>{size}</b>.",
         "en": "<br><br>At the current discard pace, the folder should settle at <b>{size}</b>.",
     },
-    "review.done.errors": {"pt": "<br><br><b>Falhas:</b><br>", "en": "<br><br><b>Failures:</b><br>"},
-
+    "review.done.errors": {
+        "pt": "<br><br><b>Falhas:</b><br>",
+        "en": "<br><br><b>Failures:</b><br>",
+    },
     # ---------------------------------------------------------- atalhos
     "shortcuts.title": {"pt": "Atalhos da revisão", "en": "Review shortcuts"},
     "shortcuts.intro": {
@@ -798,9 +776,9 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "shortcuts.note": {
         "pt": "As teclas entre parênteses continuam valendo como alternativa. "
-              "Enter aplica a sessão e não pode ser remapeado.",
+        "Enter aplica a sessão e não pode ser remapeado.",
         "en": "The keys in parentheses keep working as alternatives. "
-              "Enter applies the session and cannot be remapped.",
+        "Enter applies the session and cannot be remapped.",
     },
     "shortcuts.empty.title": {"pt": "Atalho em branco", "en": "Empty shortcut"},
     "shortcuts.empty.body": {
@@ -821,7 +799,6 @@ STRINGS: dict[str, dict[str, str]] = {
     "action.open": {"pt": "Abrir no player", "en": "Open in the player"},
     "action.rename": {"pt": "Renomear", "en": "Rename"},
     "action.zoom": {"pt": "Zoom 1:1", "en": "1:1 zoom"},
-
     # ------------------------------------------------------------- erros
     "error.file_gone": {
         "pt": "o arquivo não está mais nesse caminho",

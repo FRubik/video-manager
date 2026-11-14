@@ -87,9 +87,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, tr("app.invalid_folder.title"), tr("app.invalid_folder.body"))
             return False
         if not config.thumbs_dir:
-            QMessageBox.warning(
-                self, tr("app.thumbs_folder.title"), tr("app.thumbs_folder.empty")
-            )
+            QMessageBox.warning(self, tr("app.thumbs_folder.title"), tr("app.thumbs_folder.empty"))
             return False
         if needs_existing_thumbs and not thumbs_dir.is_dir():
             QMessageBox.warning(
@@ -103,9 +101,7 @@ class MainWindow(QMainWindow):
             config.maybe_dir = str(library.default_maybe_dir(videos_dir))
             self.setup_view.maybe_picker.setText(config.maybe_dir)
         if Path(config.maybe_dir).expanduser() == Path(config.trash_dir).expanduser():
-            QMessageBox.warning(
-                self, tr("app.same_folders.title"), tr("app.same_folders.body")
-            )
+            QMessageBox.warning(self, tr("app.same_folders.title"), tr("app.same_folders.body"))
             return False
         return True
 
@@ -416,9 +412,7 @@ class MainWindow(QMainWindow):
         thumbs_dir = Path(config.thumbs_dir).expanduser()
         salva = library.load_session(thumbs_dir)
         if salva is None:
-            QMessageBox.information(
-                self, tr("app.resume.none.title"), tr("app.resume.none.body")
-            )
+            QMessageBox.information(self, tr("app.resume.none.title"), tr("app.resume.none.body"))
             self.setup_view.refresh_summary()
             return
 
@@ -432,9 +426,7 @@ class MainWindow(QMainWindow):
         session, index, missing = library.restore_session(salva, entries)
 
         if not session:
-            QMessageBox.warning(
-                self, tr("app.resume.empty.title"), tr("app.resume.empty.body")
-            )
+            QMessageBox.warning(self, tr("app.resume.empty.title"), tr("app.resume.empty.body"))
             library.clear_session(thumbs_dir)
             self.setup_view.refresh_summary()
             return
@@ -474,10 +466,13 @@ class MainWindow(QMainWindow):
             self._gen_timer.stop()
             self._worker.cancel()
             self._worker.wait(30000)
-        if self.stack.currentWidget() is self.review_view and self.review_view.has_pending_changes():
-            if not self._resolve_pending_on_exit():
-                event.ignore()
-                return
+        if (
+            self.stack.currentWidget() is self.review_view
+            and self.review_view.has_pending_changes()
+            and not self._resolve_pending_on_exit()
+        ):
+            event.ignore()
+            return
         self.setup_view.current_config().save()
         event.accept()
 

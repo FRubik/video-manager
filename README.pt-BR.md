@@ -13,6 +13,15 @@ central é o *contact sheet* — uma folha com uma grade de frames e um cabeçal
 com os dados do arquivo —, e ela costuma bastar para decidir; os vídeos para os
 quais não basta ganham uma pilha própria em vez de uma decisão apressada.
 
+![Tela de revisão: a folha do vídeo atual, a lista da sessão com as decisões até aqui e as teclas de cada ação](assets/prints/review-pt.png)
+
+<details>
+<summary>Tela inicial</summary>
+
+![Tela inicial: pastas, opções de geração das thumbnails e como a sessão de revisão é montada](assets/prints/setup-pt.png)
+
+</details>
+
 O que ele faz:
 
 - **Gera contact sheets** de uma pasta inteira, em paralelo, com grade, tamanho,
@@ -426,6 +435,24 @@ está no PATH, um segundo caminho reextrai os frames com ele — um processo por
 frame, com seek preciso (é o caso raro; a precisão vale mais que os
 milissegundos economizados). Sem o ffmpeg, o vídeo falha com erro em vez de
 salvar uma folha preta.
+
+## Testes
+
+```bash
+uv run pytest
+```
+
+`tests/` tem testes de unidade (varredura, histórico, sessão salva, renomear,
+formatação, atalhos, config) e de ponta a ponta: vídeos sintéticos gerados na
+hora viram folhas, e uma revisão é conduzida pela janela principal de verdade,
+conferindo que cada arquivo foi parar na pasta certa. Roda sem tela
+(`QT_QPA_PLATFORM=offscreen`) e num `HOME` descartável, então nunca mexe na sua
+config. A suíte também roda o [Ruff](https://docs.astral.sh/ruff/) (lint e
+formatação, configurado no `pyproject.toml`). Toda alteração roda a suíte antes
+do commit.
+
+Os prints lá de cima saem do próprio programa, sobre vídeos sintéticos:
+`uv run python scripts/gerar_prints.py` os refaz em `assets/prints/`.
 
 ## Contribuindo
 
