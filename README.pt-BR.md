@@ -13,6 +13,15 @@ central é o *contact sheet* — uma folha com uma grade de frames e um cabeçal
 com os dados do arquivo —, e ela costuma bastar para decidir; os vídeos para os
 quais não basta ganham uma pilha própria em vez de uma decisão apressada.
 
+![Tela de revisão: a folha do vídeo atual, a lista da sessão com as decisões até aqui e as teclas de cada ação](assets/prints/review-pt.png)
+
+<details>
+<summary>Tela inicial</summary>
+
+![Tela inicial: pastas, opções de geração das thumbnails e como a sessão de revisão é montada](assets/prints/setup-pt.png)
+
+</details>
+
 O que ele faz:
 
 - **Gera contact sheets** de uma pasta inteira, em paralelo, com grade, tamanho,
@@ -439,6 +448,9 @@ hora viram folhas, e uma revisão é conduzida pela janela principal de verdade,
 conferindo que cada arquivo foi parar na pasta certa. Roda sem tela
 (`QT_QPA_PLATFORM=offscreen`) e num `HOME` descartável, então nunca mexe na sua
 config. Toda alteração roda a suíte antes do commit.
+
+Os prints lá de cima saem do próprio programa, sobre vídeos sintéticos:
+`uv run python scripts/gerar_prints.py` os refaz em `assets/prints/`.
 
 ## Contribuindo
 

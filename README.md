@@ -13,6 +13,15 @@ central tool is the *contact sheet* — a grid of frames with a header carrying 
 file's data — and it is usually enough to decide; the videos it isn't enough for
 get a pile of their own instead of a rushed decision.
 
+![Review screen: the contact sheet of the current video, the session list with the decisions so far, and the keys for each action](assets/prints/review-en.png)
+
+<details>
+<summary>Start screen</summary>
+
+![Start screen: folders, thumbnail generation options and how the review session is drawn](assets/prints/setup-en.png)
+
+</details>
+
 What it does:
 
 - **Generates contact sheets** for a whole folder, in parallel, with a
@@ -444,6 +453,9 @@ spot, turned into contact sheets, and a review is driven through the real main
 window, checking that each file ends up in the right folder. It runs without a
 screen (`QT_QPA_PLATFORM=offscreen`) and in a throwaway `HOME`, so it never
 touches your own config. Every change runs the suite before a commit.
+
+The screenshots above come from the program itself, over synthetic videos:
+`uv run python scripts/gerar_prints.py` regenerates them in `assets/prints/`.
 
 ## Contributing
 
