@@ -8,12 +8,19 @@ from pathlib import Path
 
 from PySide6.QtGui import QIcon
 
+#: id da aplicação no formato reverse-DNS do freedesktop: é o nome do ícone
+#: no tema do sistema, do arquivo .desktop e o app id da janela no Wayland.
+#:
+#: Não pode começar com `video-`: o KDE trata nomes assim como tipo MIME e cai
+#: em `video-x-generic` antes de procurar no tema hicolor, onde o nosso está.
+APP_ID = "io.github.frubik.VideoManager"
+
 #: nome do ícone no tema do sistema e no `Icon=` do arquivo .desktop
-ICON_NAME = "video-manager"
+ICON_NAME = APP_ID
 
 #: precisa bater com o nome do .desktop instalado: é por ele que o compositor
 #: Wayland liga a janela ao ícone do menu (o `setWindowIcon` sozinho não basta)
-DESKTOP_FILE_NAME = "video-manager"
+DESKTOP_FILE_NAME = APP_ID
 
 ICON_DIR = Path(__file__).parent / "icons"
 

@@ -1,4 +1,4 @@
-<img src="video_manager/icons/hicolor/128x128/apps/video-manager.png" width="96" align="right" alt="">
+<img src="video_manager/icons/hicolor/128x128/apps/io.github.frubik.VideoManager.png" width="96" align="right" alt="">
 
 # Gerenciador de Vídeos
 
@@ -85,6 +85,18 @@ depois que o lançador é instalado:
 Isso copia os ícones para `~/.local/share/icons/hicolor` e o lançador para
 `~/.local/share/applications` — sem precisar de root. O `--uninstall` remove os
 mesmos arquivos.
+
+O lançador grava o **caminho completo** do comando, e não só `video-manager`:
+o menu não passa pelo shell de login, então pode não enxergar o `~/.local/bin`
+que o terminal enxerga (no KDE isso dá "não foi possível encontrar o programa").
+Por isso o script tem que rodar *depois* do `uv tool install`, e de novo se o
+comando mudar de lugar.
+
+O id do programa é `io.github.frubik.VideoManager` — é o nome do `.desktop`, do
+ícone e o app id da janela no Wayland. Não é só convenção do freedesktop: o KDE
+trata nomes de ícone que começam com `video-` como tipo MIME e cai no ícone
+genérico de vídeo antes de procurar no tema `hicolor`, então `video-manager`
+nunca apareceria no menu.
 
 No Wayland isso não é opcional: lá o ícone da barra de tarefas vem do arquivo
 `.desktop`, casado com a janela pelo app id — sem esse passo a janela fica com o

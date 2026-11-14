@@ -1,4 +1,4 @@
-<img src="video_manager/icons/hicolor/128x128/apps/video-manager.png" width="96" align="right" alt="">
+<img src="video_manager/icons/hicolor/128x128/apps/io.github.frubik.VideoManager.png" width="96" align="right" alt="">
 
 # Video Manager
 
@@ -86,6 +86,18 @@ launcher is installed:
 That copies the icons into `~/.local/share/icons/hicolor` and the launcher into
 `~/.local/share/applications` — no root needed. `--uninstall` removes the same
 files.
+
+The launcher stores the **full path** of the command, not just `video-manager`:
+the menu does not go through a login shell, so it may not see the `~/.local/bin`
+the terminal sees (on KDE that shows up as "could not find the program"). That is
+why the script has to run *after* `uv tool install`, and again if the command
+moves.
+
+The app id is `io.github.frubik.VideoManager` — the name of the `.desktop`, of
+the icon and the window's app id on Wayland. It is not only freedesktop
+convention: KDE treats icon names starting with `video-` as MIME types and falls
+back to the generic video icon before looking in the `hicolor` theme, so
+`video-manager` would never show up in the menu.
 
 It matters on Wayland: there the taskbar icon comes from the `.desktop` file,
 matched to the window by app id, so without this step the window keeps the
