@@ -432,6 +432,21 @@ PATH, a second path re-extracts the frames with it — one process per frame, wi
 an accurate seek (it's the rare case; precision beats the milliseconds saved).
 Without ffmpeg, the video fails with an error rather than saving a black sheet.
 
+## Tests
+
+```bash
+uv run pytest
+```
+
+`tests/` has unit tests (scanning, history, saved session, renaming, formatting,
+shortcuts, config) and end-to-end ones: synthetic videos are generated on the
+spot, turned into contact sheets, and a review is driven through the real main
+window, checking that each file ends up in the right folder. It runs without a
+screen (`QT_QPA_PLATFORM=offscreen`) and in a throwaway `HOME`, so it never
+touches your own config. Every change runs the suite before a commit.
+
+## Contributing
+
 Issues and pull requests are welcome. Two things worth knowing before touching
 the code:
 

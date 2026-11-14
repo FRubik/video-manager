@@ -427,6 +427,19 @@ frame, com seek preciso (é o caso raro; a precisão vale mais que os
 milissegundos economizados). Sem o ffmpeg, o vídeo falha com erro em vez de
 salvar uma folha preta.
 
+## Testes
+
+```bash
+uv run pytest
+```
+
+`tests/` tem testes de unidade (varredura, histórico, sessão salva, renomear,
+formatação, atalhos, config) e de ponta a ponta: vídeos sintéticos gerados na
+hora viram folhas, e uma revisão é conduzida pela janela principal de verdade,
+conferindo que cada arquivo foi parar na pasta certa. Roda sem tela
+(`QT_QPA_PLATFORM=offscreen`) e num `HOME` descartável, então nunca mexe na sua
+config. Toda alteração roda a suíte antes do commit.
+
 ## Contribuindo
 
 Issues e pull requests são bem-vindos. Duas coisas que vale saber antes de mexer

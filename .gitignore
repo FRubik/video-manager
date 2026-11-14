@@ -22,3 +22,8 @@ _movimentos.jsonl
 
 # registro local de sessões (não versionado)
 sessoes/
+
+# testes
+.pytest_cache/
+.coverage
+htmlcov/
