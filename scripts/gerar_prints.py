@@ -1,19 +1,27 @@
 """Gera os prints do README a partir do próprio programa.
 
-    uv run python scripts/gerar_prints.py
+    uv run python scripts/gerar_prints.py                      # vídeos sintéticos
+    uv run python scripts/gerar_prints.py --videos ~/filmes    # vídeos de verdade
 
-Abre a janela de verdade, sem tela (`QT_QPA_PLATFORM=offscreen`), sobre uma
-pasta de vídeos sintéticos criada na hora — nunca a biblioteca de quem roda —
-e salva a tela inicial e a de revisão, em inglês e em português, em
+Abre a janela de verdade, sem tela (`QT_QPA_PLATFORM=offscreen`), e salva a
+tela inicial, a de revisão e uma folha gerada, em inglês e em português, em
 `assets/prints/`. Rode de novo quando a interface mudar, e confira as imagens
 antes de commitar.
 
-A config também vai para a pasta temporária: a janela grava a dela sozinha.
+Os prints do README usam os filmes abertos da Blender Foundation (Big Buck
+Bunny, Sintel, Tears of Steel, CC BY 3.0), que não vão para o repositório:
+baixe-os e passe a pasta em `--videos`. Sem ela, saem vídeos sintéticos.
+
+Nada é escrito na pasta passada em `--videos`: os vídeos entram por link
+simbólico, com o nome limpo, numa pasta temporária, e as folhas, o histórico e
+a config ficam lá. Os nomes aparecem no print, por isso a limpeza.
 """
 
 from __future__ import annotations
 
+import argparse
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -24,7 +32,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
 
 # o pacote antes do cv2: ele guarda o ambiente antes de o cv2 reescrevê-lo
-from video_manager import config, library, thumbs  # noqa: E402, I001
+from video_manager import config, i18n, library, thumbs  # noqa: E402, I001
 
 import cv2  # noqa: E402
 import numpy as np  # noqa: E402
@@ -64,14 +72,35 @@ def _video(path: Path, cor: tuple[int, int, int], bolas: int) -> None:
     writer.release()
 
 
-def _preparar() -> tuple[Path, Path]:
+#: pedaços de nome de arquivo que não dizem nada no print
+_RUIDO = re.compile(r"^(\d{3,4}p|4k|hd|stereo)$", re.IGNORECASE)
+
+
+def nome_limpo(arquivo: Path) -> str:
+    """`Sintel - Open Movie by … [eRsGyueVLvQ].webm` -> `Sintel.webm`."""
+    stem = re.sub(r"\[[^\]]*\]", "", arquivo.stem).split(" - ")[0]
+    palavras = [p for p in stem.replace("_", " ").split() if not _RUIDO.match(p)]
+    stem = " ".join(palavras) or arquivo.stem
+    if stem.islower():
+        stem = stem.title()
+    return stem + arquivo.suffix.lower()
+
+
+def _preparar(origem: Path | None) -> tuple[Path, Path]:
     shutil.rmtree(DEMO, ignore_errors=True)
     videos = DEMO / "videos"
     videos.mkdir(parents=True)
-    for nome, (cor, bolas) in VIDEOS.items():
-        _video(videos / nome, cor, bolas)
+    if origem is None:
+        for nome, (cor, bolas) in VIDEOS.items():
+            _video(videos / nome, cor, bolas)
+    else:
+        for arquivo in library.list_videos(origem):
+            (videos / nome_limpo(arquivo)).symlink_to(arquivo.resolve())
+        if not library.list_videos(videos):
+            raise SystemExit(f"nenhum vídeo em {origem}")
     thumbs_dir = videos / "thumbs"
-    opts = thumbs.ThumbOptions(n_rows=4, n_cols=4, cell_height=150, workers=4)
+    # a grade padrão do programa, para o print mostrar o que o usuário verá
+    opts = thumbs.ThumbOptions(workers=4)
     falhas = [r for r in thumbs.generate(library.list_videos(videos), thumbs_dir, opts) if not r.ok]
     if falhas:
         raise SystemExit(f"folhas falharam: {[(r.video.name, r.error) for r in falhas]}")
@@ -87,20 +116,31 @@ def _salvar(widget, nome: str) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--videos", type=Path, help="pasta com os vídeos dos prints")
+    parser.add_argument(
+        "--folha", help="vídeo cuja folha vira print (nome já limpo; padrão: o primeiro)"
+    )
+    args = parser.parse_args()
+    origem = args.videos.expanduser() if args.videos else None
+    if origem is not None and not origem.is_dir():
+        raise SystemExit(f"pasta não encontrada: {origem}")
+
     app = QApplication.instance() or QApplication([])
     config.CONFIG_PATH = DEMO / "config" / "config.json"
     from video_manager.app import MainWindow
 
     SAIDA.mkdir(parents=True, exist_ok=True)
     for idioma in ("en", "pt"):
-        videos, thumbs_dir = _preparar()
-        config.Config(
-            language=idioma,
-            videos_dir=str(videos),
-            thumbs_dir=str(thumbs_dir),
-            n_rows=4,
-            n_cols=4,
-        ).save()
+        # a faixa da folha sai no idioma corrente
+        i18n.set_language(idioma)
+        videos, thumbs_dir = _preparar(origem)
+        config.Config(language=idioma, videos_dir=str(videos), thumbs_dir=str(thumbs_dir)).save()
+        folha = args.folha or library.list_videos(videos)[0].name
+        shutil.copyfile(
+            thumbs_dir / library.thumb_output_name(Path(folha)), SAIDA / f"sheet-{idioma}.jpg"
+        )
+        print(f"assets/prints/sheet-{idioma}.jpg")
         janela = MainWindow()
         janela.resize(1280, 820)
         janela.show()
