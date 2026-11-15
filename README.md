@@ -16,11 +16,20 @@ get a pile of their own instead of a rushed decision.
 ![Review screen: the contact sheet of the current video, the session list with the decisions so far, and the keys for each action](assets/prints/review-en.png)
 
 <details>
+<summary>A contact sheet as it is saved</summary>
+
+![Contact sheet of Big Buck Bunny: a header with the file data and 25 frames spread across the whole film](assets/prints/sheet-en.jpg)
+
+</details>
+
+<details>
 <summary>Start screen</summary>
 
 ![Start screen: folders, thumbnail generation options and how the review session is drawn](assets/prints/setup-en.png)
 
 </details>
+
+*Screenshots made with the Blender Foundation open movies [Big Buck Bunny](https://peach.blender.org/) (© 2008 Blender Foundation), [Sintel](https://durian.blender.org/) (© Blender Foundation) and [Tears of Steel](https://mango.blender.org/) ((CC) Blender Foundation), under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 
 What it does:
 
@@ -468,8 +477,10 @@ touches your own config. The suite also runs [Ruff](https://docs.astral.sh/ruff/
 (lint and formatting, configured in `pyproject.toml`). Every change runs it before
 a commit.
 
-The screenshots above come from the program itself, over synthetic videos:
-`uv run python scripts/gerar_prints.py` regenerates them in `assets/prints/`.
+The screenshots above come from the program itself:
+`uv run python scripts/gerar_prints.py --videos <folder>` regenerates them in
+`assets/prints/`, from the three Blender open movies (not in the repository —
+download them into a folder). Without `--videos`, it uses synthetic videos.
 
 ## Contributing
 

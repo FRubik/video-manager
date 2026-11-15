@@ -16,11 +16,20 @@ quais não basta ganham uma pilha própria em vez de uma decisão apressada.
 ![Tela de revisão: a folha do vídeo atual, a lista da sessão com as decisões até aqui e as teclas de cada ação](assets/prints/review-pt.png)
 
 <details>
+<summary>Uma folha, do jeito que é salva</summary>
+
+![Folha do Big Buck Bunny: cabeçalho com os dados do arquivo e 25 frames espalhados pelo filme inteiro](assets/prints/sheet-pt.jpg)
+
+</details>
+
+<details>
 <summary>Tela inicial</summary>
 
 ![Tela inicial: pastas, opções de geração das thumbnails e como a sessão de revisão é montada](assets/prints/setup-pt.png)
 
 </details>
+
+*Prints feitos com os filmes abertos da Blender Foundation [Big Buck Bunny](https://peach.blender.org/) (© 2008 Blender Foundation), [Sintel](https://durian.blender.org/) (© Blender Foundation) e [Tears of Steel](https://mango.blender.org/) ((CC) Blender Foundation), sob [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 
 O que ele faz:
 
@@ -463,8 +472,10 @@ config. A suíte também roda o [Ruff](https://docs.astral.sh/ruff/) (lint e
 formatação, configurado no `pyproject.toml`). Toda alteração roda a suíte antes
 do commit.
 
-Os prints lá de cima saem do próprio programa, sobre vídeos sintéticos:
-`uv run python scripts/gerar_prints.py` os refaz em `assets/prints/`.
+Os prints lá de cima saem do próprio programa:
+`uv run python scripts/gerar_prints.py --videos <pasta>` os refaz em
+`assets/prints/`, a partir dos três filmes abertos da Blender (que não estão no
+repositório — baixe-os numa pasta). Sem `--videos`, usa vídeos sintéticos.
 
 ## Contribuindo
 
